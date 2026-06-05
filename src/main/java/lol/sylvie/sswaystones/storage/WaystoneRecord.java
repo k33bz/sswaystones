@@ -29,6 +29,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.particles.PowerParticleOption;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -42,6 +43,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ResolvableProfile;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
@@ -73,13 +75,13 @@ public final class WaystoneRecord {
     // this weird workaround
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private WaystoneRecord(UUID owner, String ownerName, String waystoneName, BlockPos pos, ResourceKey<Level> world,
-            Optional<AccessSettings> accessSettings, Item icon) {
+                           Optional<AccessSettings> accessSettings, Item icon) {
         this(owner, ownerName, waystoneName, pos, world,
                 accessSettings.orElseGet(() -> new AccessSettings(false, false, "")), icon);
     }
 
     public WaystoneRecord(UUID owner, String ownerName, String waystoneName, BlockPos pos, ResourceKey<Level> world,
-            AccessSettings accessSettings, Item icon) {
+                          AccessSettings accessSettings, Item icon) {
         this.owner = owner;
         this.ownerName = ownerName;
         this.setWaystoneName(waystoneName); // Limits waystone name
@@ -135,11 +137,14 @@ public final class WaystoneRecord {
         }
 
         if (config.safeTeleport) {
-            // Remove any blocks trying to suffocate the player
+            // Remove any blocks trying to suffocate the player except those marked as unremoveable
+            List<Block> unremoveableBlocks = config.safeTeleportUnremoveableBlocks.stream()
+                    .map(x -> BuiltInRegistries.BLOCK.getValue(Identifier.parse(x)))
+                    .toList();
             BlockPos head = target.offset(0, 1, 0);
             BlockState headState = targetWorld.getBlockState(head);
             if (!headState.getCollisionShape(targetWorld, head).isEmpty()) {
-                if (headState.getDestroySpeed(targetWorld, head) != -1) {
+                if (headState.getDestroySpeed(targetWorld, head) != -1 && !unremoveableBlocks.contains(headState.getBlock())) {
                     server.executeIfPossible(() -> targetWorld.destroyBlock(head, true));
                 }
             }
