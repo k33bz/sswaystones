@@ -75,13 +75,13 @@ public final class WaystoneRecord {
     // this weird workaround
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private WaystoneRecord(UUID owner, String ownerName, String waystoneName, BlockPos pos, ResourceKey<Level> world,
-                           Optional<AccessSettings> accessSettings, Item icon) {
+            Optional<AccessSettings> accessSettings, Item icon) {
         this(owner, ownerName, waystoneName, pos, world,
                 accessSettings.orElseGet(() -> new AccessSettings(false, false, "")), icon);
     }
 
     public WaystoneRecord(UUID owner, String ownerName, String waystoneName, BlockPos pos, ResourceKey<Level> world,
-                          AccessSettings accessSettings, Item icon) {
+            AccessSettings accessSettings, Item icon) {
         this.owner = owner;
         this.ownerName = ownerName;
         this.setWaystoneName(waystoneName); // Limits waystone name
@@ -137,14 +137,15 @@ public final class WaystoneRecord {
         }
 
         if (config.safeTeleport) {
-            // Remove any blocks trying to suffocate the player except those marked as unremoveable
+            // Remove any blocks trying to suffocate the player except those marked as
+            // unremoveable
             List<Block> unremoveableBlocks = config.safeTeleportUnremoveableBlocks.stream()
-                    .map(x -> BuiltInRegistries.BLOCK.getValue(Identifier.parse(x)))
-                    .toList();
+                    .map(x -> BuiltInRegistries.BLOCK.getValue(Identifier.parse(x))).toList();
             BlockPos head = target.offset(0, 1, 0);
             BlockState headState = targetWorld.getBlockState(head);
             if (!headState.getCollisionShape(targetWorld, head).isEmpty()) {
-                if (headState.getDestroySpeed(targetWorld, head) != -1 && !unremoveableBlocks.contains(headState.getBlock())) {
+                if (headState.getDestroySpeed(targetWorld, head) != -1
+                        && !unremoveableBlocks.contains(headState.getBlock())) {
                     server.executeIfPossible(() -> targetWorld.destroyBlock(head, true));
                 }
             }

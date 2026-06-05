@@ -147,9 +147,8 @@ public class WaystonesCommand {
                                 } else if (type == String.class) {
                                     field.set(instance, value);
                                 } else if (type == List.class) {
-                                    field.set(instance, List.of(
-                                        value.replaceAll("^\\[\\s*|\\s*]$|\"", "").split(",\\s")
-                                    ));
+                                    field.set(instance,
+                                            List.of(value.replaceAll("^\\[\\s*|\\s*]$|\"", "").split(",\\s")));
                                 }
                                 newValue = field.get(instance);
                             } catch (IllegalAccessException e) {
