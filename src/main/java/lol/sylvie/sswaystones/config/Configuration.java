@@ -80,9 +80,9 @@ public class Configuration {
         @Description(translation = "config.sswaystones.paranoid_teleport")
         public boolean safeTeleport = true;
 
-        @SerializedName("paranoid_teleport_unremoveable_blocks")
-        @Description(translation = "config.sswaystones.paranoid_teleport_unremoveable_blocks")
-        public List<String> safeTeleportUnremoveableBlocks = List.of();
+        @SerializedName("paranoid_teleport_unremovable_blocks")
+        @Description(translation = "config.sswaystones.paranoid_teleport_unremovable_blocks")
+        public List<String> safeTeleportUnremovableBlocks = List.of();
 
         @SerializedName("remove_invalid_waystones")
         @Description(translation = "config.sswaystones.remove_invalid_waystones")

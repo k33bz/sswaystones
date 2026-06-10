@@ -16,6 +16,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
@@ -281,7 +282,7 @@ public class JavaViewerGui extends SimpleGui {
             }
 
             // Server-owned
-            if (Permissions.check(player, "sswaystones.create.server", false)) {
+            if (Permissions.check(player, "sswaystones.create.server", PermissionLevel.ADMINS)) {
                 GuiElementBuilder serverToggle = new GuiElementBuilder(Items.PLAYER_HEAD)
                         .setProfileSkinTexture(IconConstants.OBSERVER)
                         .setName(Component.translatable("gui.sswaystones.toggle_server")

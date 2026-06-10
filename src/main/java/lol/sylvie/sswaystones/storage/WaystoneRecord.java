@@ -21,6 +21,7 @@ import lol.sylvie.sswaystones.gui.ViewerUtil;
 import lol.sylvie.sswaystones.util.HashUtil;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.ChatFormatting;
+import net.minecraft.IdentifierException;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.Vec3i;
@@ -138,8 +139,14 @@ public final class WaystoneRecord {
         if (config.safeTeleport) {
             // Remove any blocks trying to suffocate the player except those marked as
             // unremoveable
-            List<Block> unremoveableBlocks = config.safeTeleportUnremoveableBlocks.stream()
-                    .map(x -> BuiltInRegistries.BLOCK.getValue(Identifier.parse(x))).toList();
+            List<Block> unremoveableBlocks = config.safeTeleportUnremovableBlocks.stream().map(x -> {
+                try {
+                    Identifier id = Identifier.parse(x);
+                    return BuiltInRegistries.BLOCK.getValue(id);
+                } catch (IdentifierException ignored) {
+                }
+                return null;
+            }).toList();
             BlockPos head = target.offset(0, 1, 0);
             BlockState headState = targetWorld.getBlockState(head);
             if (!headState.getCollisionShape(targetWorld, head).isEmpty()) {

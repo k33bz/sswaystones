@@ -24,7 +24,8 @@ public class LevelChunkMixin {
 
     @ModifyVariable(method = "setBlockState", at = @At("STORE"), ordinal = 4)
     private boolean sswaystones$fixSetblockUpdating(boolean value, @Local(argsOnly = true) BlockPos pos) {
-        if (value) return true;
+        if (value)
+            return true;
         BlockEntity blockEntity = level.getBlockEntity(pos);
         return blockEntity instanceof WaystoneBlockEntity;
     }
