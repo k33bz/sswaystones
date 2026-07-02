@@ -67,10 +67,18 @@ public class JavaViewerGui extends SimpleGui {
             GuiElementBuilder element = new GuiElementBuilder(record.getIconOrHead(player.level().getServer()))
                     .setName(record.getWaystoneText().copy().withStyle(ChatFormatting.YELLOW));
 
+            List<Component> lore = new java.util.ArrayList<>();
             if (!record.getAccessSettings().isServerOwned())
-                element.setLore(List.of(Component.nullToEmpty(record.getOwnerName())));
+                lore.add(Component.nullToEmpty(record.getOwnerName()));
             else
                 element.glow(true);
+
+            lore.add(Component.translatable("gui.sswaystones.entry_teleport").withStyle(ChatFormatting.GRAY));
+            boolean canForget = !record.getAccessSettings().isEffectivelyGlobal()
+                    && !record.getOwnerUUID().equals(player.getUUID());
+            if (canForget)
+                lore.add(Component.translatable("gui.sswaystones.entry_forget").withStyle(ChatFormatting.DARK_GRAY));
+            element.setLore(lore);
 
             element.setCallback((index, type, action, gui) -> {
                 if (type.isRight) {
@@ -92,16 +100,24 @@ public class JavaViewerGui extends SimpleGui {
             this.setSlot(i, new GuiElementBuilder(Items.GRAY_STAINED_GLASS_PANE).setName(Component.empty()));
         }
 
-        // Gui controls
-        this.setSlot(45,
-                new GuiElementBuilder(Items.PLAYER_HEAD).setProfileSkinTexture(IconConstants.ARROW_LEFT)
-                        .setName(Component.translatable("gui.sswaystones.page_previous"))
-                        .setCallback((index, type, action, gui) -> previousPage()));
+        // Gui controls — only show the page arrows when there's actually more than one
+        // page,
+        // so a single-page list isn't cluttered with dead "Page 1 of 1" controls.
+        if (maxPages > 1) {
+            List<Component> pageLore = List
+                    .of(Component.translatable("gui.sswaystones.page_indicator", pageIndex + 1, maxPages)
+                            .withStyle(ChatFormatting.GRAY));
 
-        this.setSlot(47,
-                new GuiElementBuilder(Items.PLAYER_HEAD).setProfileSkinTexture(IconConstants.ARROW_RIGHT)
-                        .setName(Component.translatable("gui.sswaystones.page_next"))
-                        .setCallback((index, type, action, gui) -> nextPage()));
+            this.setSlot(45,
+                    new GuiElementBuilder(Items.PLAYER_HEAD).setProfileSkinTexture(IconConstants.WHITE_ARROW_LEFT)
+                            .setName(Component.translatable("gui.sswaystones.page_previous")).setLore(pageLore)
+                            .setCallback((index, type, action, gui) -> previousPage()));
+
+            this.setSlot(47,
+                    new GuiElementBuilder(Items.PLAYER_HEAD).setProfileSkinTexture(IconConstants.WHITE_ARROW_RIGHT)
+                            .setName(Component.translatable("gui.sswaystones.page_next")).setLore(pageLore)
+                            .setCallback((index, type, action, gui) -> nextPage()));
+        }
 
         // Waystone settings
         if (waystone == null)
@@ -123,12 +139,12 @@ public class JavaViewerGui extends SimpleGui {
                     .setName(Component.translatable("gui.sswaystones.change_icon").withStyle(ChatFormatting.YELLOW))
                     .glow().setCallback((index, type, action, gui) -> new IconGui(waystone, player).open()));
 
-            this.setSlot(52, new GuiElementBuilder(Items.PLAYER_HEAD).setProfileSkinTexture(IconConstants.ANVIL)
+            this.setSlot(52, new GuiElementBuilder(Items.NAME_TAG)
                     .setName(Component.translatable("gui.sswaystones.change_name").withStyle(ChatFormatting.YELLOW))
                     .setCallback((index, type, action, gui) -> new NameGui(waystone, player).open()));
 
             this.setSlot(53,
-                    new GuiElementBuilder(Items.PLAYER_HEAD).setProfileSkinTexture(IconConstants.COMMAND_BLOCK)
+                    new GuiElementBuilder(Items.CARTOGRAPHY_TABLE)
                             .setName(Component.translatable("gui.sswaystones.access_settings")
                                     .withStyle(ChatFormatting.LIGHT_PURPLE))
                             .setCallback((index, type, action, gui) -> new AccessSettingsGui(waystone, player).open()));
