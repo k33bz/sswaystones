@@ -89,7 +89,7 @@ public class JavaViewerGui extends SimpleGui {
         }
 
         for (int i = 45; i < 54; i++) {
-            this.setSlot(i, new GuiElementBuilder(Items.GRAY_STAINED_GLASS_PANE).setName(Component.empty()));
+            this.setSlot(i, new GuiElementBuilder(Items.STAINED_GLASS_PANE.gray()).setName(Component.empty()));
         }
 
         // Gui controls
@@ -195,7 +195,7 @@ public class JavaViewerGui extends SimpleGui {
 
         private void updateMenu() {
             for (int i = 0; i < 9; i++) {
-                this.setSlot(i, new GuiElementBuilder(Items.GRAY_STAINED_GLASS_PANE).setName(Component
+                this.setSlot(i, new GuiElementBuilder(Items.STAINED_GLASS_PANE.gray()).setName(Component
                         .translatable("gui.sswaystones.change_icon_instruction").withStyle(ChatFormatting.GRAY)));
             }
             this.setSlot(4, waystone.getIconOrHead(player.level().getServer()));
@@ -237,7 +237,7 @@ public class JavaViewerGui extends SimpleGui {
         private void updateMenu() {
             // Framing
             for (int i = 0; i < (9 * 3); i++) {
-                this.setSlot(i, new GuiElementBuilder(Items.GRAY_STAINED_GLASS_PANE).setName(Component
+                this.setSlot(i, new GuiElementBuilder(Items.STAINED_GLASS_PANE.gray()).setName(Component
                         .translatable("gui.sswaystones.access_settings_instruction").withStyle(ChatFormatting.GRAY)));
             }
 
@@ -332,7 +332,7 @@ public class JavaViewerGui extends SimpleGui {
 
         private void updateMenu() {
             for (int i = 0; i < (9 * 3); i++) {
-                this.setSlot(i, new GuiElementBuilder(Items.GRAY_STAINED_GLASS_PANE).setName(Component.empty()));
+                this.setSlot(i, new GuiElementBuilder(Items.STAINED_GLASS_PANE.gray()).setName(Component.empty()));
             }
 
             this.setSlot(10,
