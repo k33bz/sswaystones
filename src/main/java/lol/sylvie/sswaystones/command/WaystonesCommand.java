@@ -206,7 +206,29 @@ public class WaystonesCommand {
                 // and prints its hash; testopen opens the Java viewer for a given hash.
                 .then(literal("testcreate").executes(WaystonesCommand::testCreate))
                 .then(literal("testopen").then(argument("hash", StringArgumentType.word())
-                        .executes(WaystonesCommand::testOpen))));
+                        .executes(WaystonesCommand::testOpen)))
+                .then(literal("get").then(argument("hash", StringArgumentType.word())
+                        .executes(WaystonesCommand::testGet))));
+    }
+
+    // Echoes the stored settings for a waystone in a stable, parseable line so the bot suite can
+    // use RCON as the assertion oracle for the settings round-trip (the SavedData store and the
+    // polymer virtual-entity name hologram aren't directly queryable via /data get entity).
+    //   waystone_settings <hash> name=<name> global=<t/f> server=<t/f> team=<team-or-> hidename=<t/f>
+    private static int testGet(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context)
+            throws CommandSyntaxException {
+        WaystoneStorage storage = WaystoneStorage.getServerState(context.getSource().getServer());
+        WaystoneRecord record = storage.getWaystone(StringArgumentType.getString(context, "hash"));
+        if (record == null) {
+            throw new CommandSyntaxException(CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument(),
+                    Component.translatable("command.sswaystones.waystone_not_found"));
+        }
+        WaystoneRecord.AccessSettings a = record.getAccessSettings();
+        String line = String.format("waystone_settings %s name=%s global=%s server=%s team=%s hidename=%s",
+                record.getHash(), record.getWaystoneName(), a.isGlobal(), a.isServerOwned(),
+                a.hasTeam() ? a.getTeam() : "-", a.isNameHidden());
+        context.getSource().sendSuccess(() -> Component.literal(line), false);
+        return 1;
     }
 
     // Creates a waystone at the caller's block position (as if placed by them) and echoes the hash,
