@@ -134,6 +134,11 @@ public class BedrockViewerGui {
             builder.toggle("Server-Owned", accessSettings.isServerOwned());
         }
 
+        // Hide Name toggle (credit Hellscaped, upstream PR #51): offered to anyone who can edit the
+        // waystone — Bedrock players can read the floating name through walls, so hiding it matters
+        // most for them. Always present (no extra permission), so it's the LAST toggle index.
+        builder.toggle("Hide Name", accessSettings.isNameHidden());
+
         builder.validResultHandler(response -> {
             String name = response.asInput();
             if (name == null)
@@ -160,7 +165,12 @@ public class BedrockViewerGui {
             if (serverAvailable) {
                 boolean server = response.asToggle(index);
                 accessSettings.setServerOwned(server);
+                index += 1;
             }
+
+            // Hide Name is always the last toggle (see above).
+            boolean hideName = response.asToggle(index);
+            accessSettings.setNameHidden(hideName);
 
             waystone.setWaystoneName(name);
         });

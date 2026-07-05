@@ -43,6 +43,17 @@ dependencies {
 	compileOnly("org.geysermc.floodgate:api:${project.floodgate_version}")
 
 	include(implementation("me.lucko:fabric-permissions-api:${project.fabric_permissions_version}"))
+
+	// Pure-logic unit tests (pagination / gating / forget-eligibility / settings-UI selector /
+	// AccessSettings round-trip). These exercise plain helpers with no game runtime, so no
+	// Minecraft bootstrap is needed.
+	testImplementation platform('org.junit:junit-bom:5.11.3')
+	testImplementation 'org.junit.jupiter:junit-jupiter'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+	useJUnitPlatform()
 }
 
 processResources {

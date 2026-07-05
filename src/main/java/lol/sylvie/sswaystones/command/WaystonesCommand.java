@@ -186,6 +186,91 @@ public class WaystonesCommand {
 
                             return 1;
                         })))));
+
+        // Permission-0 backend for the native settings Dialog (see SettingsDialog). Any player who
+        // can edit the target waystone may submit; the handler re-checks canPlayerEdit and the SAME
+        // per-field permissions the Dialog used to decide which toggles to offer, so a hand-crafted
+        // command cannot escalate access. Also serves as the headless bot-test hook.
+        //
+        //   waystonesettings apply <hash> name:<...> global:<t/f/-> team:<t/f/-> server:<t/f/-> hidename:<t/f/->
+        //
+        // A field value of "-" means "leave unchanged" (the Dialog emits it for toggles the player
+        // wasn't offered). The whole tail is a single greedy string because dialog $(key)
+        // substitution produces one argument.
+        dispatcher.register(literal("waystonesettings").then(literal("apply")
+                .then(argument("args", StringArgumentType.greedyString()).executes(WaystonesCommand::applySettings))));
+    }
+
+    // Parses "key:value" tokens out of the greedy args tail. Values may contain spaces only for the
+    // name field, which is always LAST-parsed here by consuming to the next known key; to keep this
+    // simple and robust we require name to be passed with no embedded " global:"/" team:" etc.
+    // sequences (names are capped at 32 chars and sanitized by setWaystoneName regardless).
+    private static int applySettings(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context)
+            throws CommandSyntaxException {
+        ServerPlayer player = context.getSource().getPlayerOrException();
+        String raw = StringArgumentType.getString(context, "args");
+
+        // hash is the first bare token (no "key:") — pull it as the leading word.
+        String[] head = raw.trim().split("\\s+", 2);
+        String hash = head.length > 0 ? head[0] : "";
+        String rest = head.length > 1 ? head[1] : "";
+
+        WaystoneStorage storage = WaystoneStorage.getServerState(context.getSource().getServer());
+        WaystoneRecord waystone = storage.getWaystone(hash);
+        if (waystone == null) {
+            throw new CommandSyntaxException(CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument(),
+                    Component.translatable("command.sswaystones.waystone_not_found"));
+        }
+        if (!waystone.canPlayerEdit(player)) {
+            player.sendSystemMessage(
+                    Component.translatable("error.sswaystones.no_modification_permission").withStyle(ChatFormatting.RED));
+            return 0;
+        }
+
+        WaystoneRecord.AccessSettings access = waystone.getAccessSettings();
+
+        String name = extractToken(rest, "name");
+        if (name != null && !name.equals("-"))
+            waystone.setWaystoneName(name);
+
+        String global = extractToken(rest, "global");
+        if (isSet(global) && Permissions.check(player, "sswaystones.create.global", true))
+            access.setGlobal(parseBool(global));
+
+        String team = extractToken(rest, "team");
+        if (isSet(team) && player.getTeam() != null && Permissions.check(player, "sswaystones.create.team", true))
+            access.setTeam(parseBool(team) ? player.getTeam().getName() : "");
+
+        String server = extractToken(rest, "server");
+        if (isSet(server) && Permissions.check(player, "sswaystones.create.server", PermissionLevel.ADMINS))
+            access.setServerOwned(parseBool(server));
+
+        String hidename = extractToken(rest, "hidename");
+        if (isSet(hidename))
+            access.setNameHidden(parseBool(hidename));
+
+        // Persist (SavedData is marked dirty on every getServerState) and reopen the viewer.
+        ViewerUtil.openGui(player, waystone);
+        return 1;
+    }
+
+    // A field is "set" (should be applied) when present and not the "-" leave-unchanged sentinel.
+    private static boolean isSet(String v) {
+        return v != null && !v.equals("-");
+    }
+
+    private static boolean parseBool(String v) {
+        return "true".equalsIgnoreCase(v) || "1".equals(v) || "on".equalsIgnoreCase(v);
+    }
+
+    // Pull the value of "key:" up to the next " <word>:" boundary (or end of string).
+    private static String extractToken(String s, String key) {
+        if (s == null)
+            return null;
+        java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("(?:^|\\s)" + java.util.regex.Pattern.quote(key) + ":(.*?)(?=\\s+\\w+:|$)")
+                .matcher(s);
+        return m.find() ? m.group(1).trim() : null;
     }
 
     // Returns Map of String -> Description

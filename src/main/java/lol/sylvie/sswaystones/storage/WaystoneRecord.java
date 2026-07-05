@@ -273,17 +273,29 @@ public final class WaystoneRecord {
         private boolean global; // Blanket flag, allows all players to access
         private boolean server; // Hides the actual owner and makes it unbreakable
         private String team; // Scoreboard team
+        // When true, the waystone's floating name hologram is not rendered. Bedrock
+        // players can see the name text through walls, so hiding it is sometimes
+        // desirable. Feature idea credit: Hellscaped (upstream sswaystones PR #51).
+        private boolean hideName;
 
+        // hide_name is an OPTIONAL field defaulting to false so existing saves (which
+        // have no hide_name key) deserialize unchanged — non-breaking.
         public static final Codec<AccessSettings> CODEC = RecordCodecBuilder.create(instance -> instance
                 .group(Codec.BOOL.fieldOf("global").forGetter(AccessSettings::isGlobal),
                         Codec.BOOL.fieldOf("server").forGetter(AccessSettings::isServerOwned),
-                        Codec.STRING.fieldOf("team").forGetter(AccessSettings::getTeam))
+                        Codec.STRING.fieldOf("team").forGetter(AccessSettings::getTeam),
+                        Codec.BOOL.optionalFieldOf("hide_name", false).forGetter(AccessSettings::isNameHidden))
                 .apply(instance, AccessSettings::new));
 
         public AccessSettings(boolean global, boolean server, String team) {
+            this(global, server, team, false);
+        }
+
+        public AccessSettings(boolean global, boolean server, String team, boolean hideName) {
             this.global = global;
             this.server = server;
             this.team = team;
+            this.hideName = hideName;
         }
 
         public boolean isEffectivelyGlobal() {
@@ -335,6 +347,14 @@ public final class WaystoneRecord {
 
         public boolean hasTeam() {
             return !this.getTeam().isEmpty();
+        }
+
+        public boolean isNameHidden() {
+            return hideName;
+        }
+
+        public void setNameHidden(boolean hideName) {
+            this.hideName = hideName;
         }
     }
 
