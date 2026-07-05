@@ -16,8 +16,16 @@ jobs:
           distribution: temurin
           java-version: 25
           cache: gradle
+      # Compile + unit tests + jar. spotless is intentionally EXCLUDED here: its
+      # eclipse() JDT formatter is fetched at build time from download.eclipse.org,
+      # whose p2 index is an external SPOF that intermittently 500s and would then
+      # block an otherwise-green build. Formatting is still verified below in a
+      # non-fatal step so it's visible when the endpoint is up.
       - name: Build + tests
-        run: ./gradlew build
+        run: ./gradlew build -x spotlessJava -x spotlessCheck -x spotlessMisc
+      - name: Spotless check (non-fatal — eclipse formatter is an external SPOF)
+        continue-on-error: true
+        run: ./gradlew spotlessCheck
       - name: Diagnose mappings (only on failure)
         if: failure()
         run: |
