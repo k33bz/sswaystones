@@ -199,17 +199,22 @@ public class WaystonesCommand {
         // wasn't offered). The whole tail is a single greedy string because dialog $(key)
         // substitution produces one argument.
         dispatcher.register(literal("waystonesettings")
+                // apply stays reachable by any player (permission 0): it self-guards via
+                // canPlayerEdit + per-field/permission checks, and it's the dialog's submit backend.
                 .then(literal("apply").then(
                         argument("args", StringArgumentType.greedyString()).executes(WaystonesCommand::applySettings)))
-                // Test-support hooks (permission 0) so the headless bot suite can drive flows that
-                // ride on client interactions ViaProxy doesn't bridge (right-click a waystone to
-                // open the viewer / sneak-settings). testcreate makes a waystone at the caller's feet
-                // and prints its hash; testopen opens the Java viewer for a given hash.
-                .then(literal("testcreate").executes(WaystonesCommand::testCreate))
-                .then(literal("testopen").then(argument("hash", StringArgumentType.word())
-                        .executes(WaystonesCommand::testOpen)))
-                .then(literal("get").then(argument("hash", StringArgumentType.word())
-                        .executes(WaystonesCommand::testGet))));
+                // Test-support hooks. These read others' settings / mint records / open arbitrary
+                // viewers, so they are ADMIN-GATED (matching how the `sswaystones` command is gated) —
+                // they exist for the headless bot suite (op'd) and admin debugging, not for players.
+                .then(literal("testcreate")
+                        .requires(source -> Permissions.check(source, "sswaystones.manager", PermissionLevel.ADMINS))
+                        .executes(WaystonesCommand::testCreate))
+                .then(literal("testopen")
+                        .requires(source -> Permissions.check(source, "sswaystones.manager", PermissionLevel.ADMINS))
+                        .then(argument("hash", StringArgumentType.word()).executes(WaystonesCommand::testOpen)))
+                .then(literal("get")
+                        .requires(source -> Permissions.check(source, "sswaystones.manager", PermissionLevel.ADMINS))
+                        .then(argument("hash", StringArgumentType.word()).executes(WaystonesCommand::testGet))));
     }
 
     // Echoes the stored settings for a waystone in a stable, parseable line so the bot suite can
@@ -261,22 +266,17 @@ public class WaystonesCommand {
         return 1;
     }
 
-    // Parses "key:value" tokens out of the greedy args tail. Values may contain spaces only for the
-    // name field, which is always LAST-parsed here by consuming to the next known key; to keep this
-    // simple and robust we require name to be passed with no embedded " global:"/" team:" etc.
-    // sequences (names are capped at 32 chars and sanitized by setWaystoneName regardless).
+    // Applies the /waystonesettings apply tail. All string parsing lives in the dependency-free,
+    // unit-tested ApplyArgs (handles the "-" leave-unchanged sentinel, a name containing a colon, and
+    // the access: vs legacy-field precedence). AccessMode is the intended single source of truth for
+    // the access mapping — see the cross-reference comments at the access-UI sites.
     private static int applySettings(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context)
             throws CommandSyntaxException {
         ServerPlayer player = context.getSource().getPlayerOrException();
-        String raw = StringArgumentType.getString(context, "args");
-
-        // hash is the first bare token (no "key:") — pull it as the leading word.
-        String[] head = raw.trim().split("\\s+", 2);
-        String hash = head.length > 0 ? head[0] : "";
-        String rest = head.length > 1 ? head[1] : "";
+        ApplyArgs args = ApplyArgs.parse(StringArgumentType.getString(context, "args"));
 
         WaystoneStorage storage = WaystoneStorage.getServerState(context.getSource().getServer());
-        WaystoneRecord waystone = storage.getWaystone(hash);
+        WaystoneRecord waystone = storage.getWaystone(args.hash());
         if (waystone == null) {
             throw new CommandSyntaxException(CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument(),
                     Component.translatable("command.sswaystones.waystone_not_found"));
@@ -289,65 +289,80 @@ public class WaystonesCommand {
 
         WaystoneRecord.AccessSettings access = waystone.getAccessSettings();
 
-        String name = extractToken(rest, "name");
-        if (name != null && !name.equals("-"))
-            waystone.setWaystoneName(name);
+        // Snapshot BEFORE mutating so we can (a) detect a no-op Done and (b) log the prior state if we
+        // are about to change access (which includes collapsing a legacy redundant combo). This makes
+        // the normalization recoverable from the server log.
+        boolean beforeGlobal = access.isGlobal();
+        boolean beforeServer = access.isServerOwned();
+        String beforeTeam = access.getTeam();
+        boolean beforeHidden = access.isNameHidden();
+        String beforeName = waystone.getWaystoneName();
 
-        String global = extractToken(rest, "global");
-        if (isSet(global) && Permissions.check(player, "sswaystones.create.global", true))
-            access.setGlobal(parseBool(global));
+        // Compute the intended NEW field values without mutating yet.
+        String newName = args.newName().orElse(beforeName);
 
-        String team = extractToken(rest, "team");
-        if (isSet(team) && player.getTeam() != null && Permissions.check(player, "sswaystones.create.team", true))
-            access.setTeam(parseBool(team) ? player.getTeam().getName() : "");
+        boolean newGlobal = beforeGlobal;
+        boolean newServer = beforeServer;
+        String newTeam = beforeTeam;
 
-        String server = extractToken(rest, "server");
-        if (isSet(server) && Permissions.check(player, "sswaystones.create.server", PermissionLevel.ADMINS))
-            access.setServerOwned(parseBool(server));
+        boolean canGlobal = Permissions.check(player, "sswaystones.create.global", true);
+        boolean canTeam = player.getTeam() != null && Permissions.check(player, "sswaystones.create.team", true);
+        boolean canServer = Permissions.check(player, "sswaystones.create.server", PermissionLevel.ADMINS);
 
-        // Single "access mode" form used by the native dialog's Access selector. Maps one mutually-
-        // exclusive mode back to the same three fields, re-checking the SAME permissions server-side
-        // (PRIVATE always allowed) so a hand-crafted access:server can't escalate. The per-field
-        // global:/team:/server: params above still work for any other caller.
-        String accessMode = extractToken(rest, "access");
-        if (isSet(accessMode)) {
-            AccessMode mode = AccessMode.fromId(accessMode);
-            boolean canTeam = player.getTeam() != null && Permissions.check(player, "sswaystones.create.team", true);
-            boolean canGlobal = Permissions.check(player, "sswaystones.create.global", true);
-            boolean canServer = Permissions.check(player, "sswaystones.create.server", PermissionLevel.ADMINS);
+        if (args.accessMode().isPresent()) {
+            // Single "access mode" form (native dialog + Bedrock dropdown). Maps one mutually-exclusive
+            // mode back to the three fields, re-checking the SAME permissions (PRIVATE always allowed)
+            // so a hand-crafted access:server can't escalate. AccessMode is the single source of truth.
+            AccessMode mode = args.accessMode().get();
             if (mode.isAllowed(canTeam, canGlobal, canServer)) {
-                access.setGlobal(mode.global());
-                access.setServerOwned(mode.serverOwned());
-                access.setTeam(mode.team(player.getTeam() != null ? player.getTeam().getName() : ""));
+                newGlobal = mode.global();
+                newServer = mode.serverOwned();
+                newTeam = mode.team(player.getTeam() != null ? player.getTeam().getName() : "");
             }
+        } else {
+            // Legacy per-field form (used only when access: is absent). Each field is independently
+            // permission-gated.
+            if (args.global().isPresent() && canGlobal)
+                newGlobal = args.global().get();
+            if (args.team().isPresent() && canTeam)
+                newTeam = args.team().get() ? player.getTeam().getName() : "";
+            if (args.server().isPresent() && canServer)
+                newServer = args.server().get();
         }
 
-        String hidename = extractToken(rest, "hidename");
-        if (isSet(hidename))
-            access.setNameHidden(parseBool(hidename));
+        boolean newHidden = args.hideName().orElse(beforeHidden);
+
+        // Skip the write entirely on a no-op Done (nothing actually changed) — no gratuitous mutation.
+        boolean unchanged = newGlobal == beforeGlobal && newServer == beforeServer && newTeam.equals(beforeTeam)
+                && newHidden == beforeHidden && newName.equals(beforeName);
+        if (unchanged) {
+            ViewerUtil.openGui(player, waystone);
+            return 1;
+        }
+
+        // If we're about to change the ACCESS fields (incl. collapsing a legacy global+team combo to
+        // one mode), log the prior AccessSettings at INFO so the previous state is recoverable.
+        boolean accessChanging = newGlobal != beforeGlobal || newServer != beforeServer
+                || !newTeam.equals(beforeTeam);
+        if (accessChanging) {
+            Waystones.LOGGER.info(
+                    "Waystone {} ({}) access changing by {}: was [global={}, server={}, team='{}', hideName={}] -> "
+                            + "[global={}, server={}, team='{}', hideName={}]",
+                    waystone.getHash(), beforeName, player.getGameProfile().name(), beforeGlobal, beforeServer,
+                    beforeTeam, beforeHidden, newGlobal, newServer, newTeam, newHidden);
+        }
+
+        // Commit.
+        if (!newName.equals(beforeName))
+            waystone.setWaystoneName(newName);
+        access.setGlobal(newGlobal);
+        access.setServerOwned(newServer);
+        access.setTeam(newTeam);
+        access.setNameHidden(newHidden);
 
         // Persist (SavedData is marked dirty on every getServerState) and reopen the viewer.
         ViewerUtil.openGui(player, waystone);
         return 1;
-    }
-
-    // A field is "set" (should be applied) when present and not the "-" leave-unchanged sentinel.
-    private static boolean isSet(String v) {
-        return v != null && !v.equals("-");
-    }
-
-    private static boolean parseBool(String v) {
-        return "true".equalsIgnoreCase(v) || "1".equals(v) || "on".equalsIgnoreCase(v);
-    }
-
-    // Pull the value of "key:" up to the next " <word>:" boundary (or end of string).
-    private static String extractToken(String s, String key) {
-        if (s == null)
-            return null;
-        java.util.regex.Matcher m = java.util.regex.Pattern
-                .compile("(?:^|\\s)" + java.util.regex.Pattern.quote(key) + ":(.*?)(?=\\s+\\w+:|$)")
-                .matcher(s);
-        return m.find() ? m.group(1).trim() : null;
     }
 
     // Returns Map of String -> Description
