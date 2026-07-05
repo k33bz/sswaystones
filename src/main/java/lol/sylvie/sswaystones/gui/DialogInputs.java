@@ -8,6 +8,7 @@ import com.google.gson.JsonPrimitive;
 import com.mojang.serialization.JsonOps;
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.dialog.Input;
 import net.minecraft.server.dialog.action.Action;
@@ -42,9 +43,14 @@ public final class DialogInputs {
      * is the string "true" or "false"; {@code initial} pre-selects the matching entry.
      */
     public static Input bool(String key, String label, boolean initial, int width) {
+        // Color the STATE text (only the On/Off entry display, not the label) green/red so it reads
+        // like the old sgui menu's colored toggles. Uniform across every toggle — On=green, Off=red
+        // (Hide Name is NOT inverted). Cosmetic: the submitted id ("true"/"false") is unchanged.
         List<SingleOptionInput.Entry> entries = List.of(
-                new SingleOptionInput.Entry("true", Optional.of(Component.literal("On")), initial),
-                new SingleOptionInput.Entry("false", Optional.of(Component.literal("Off")), !initial));
+                new SingleOptionInput.Entry("true",
+                        Optional.of(Component.literal("On").withStyle(ChatFormatting.GREEN)), initial),
+                new SingleOptionInput.Entry("false",
+                        Optional.of(Component.literal("Off").withStyle(ChatFormatting.RED)), !initial));
         return new Input(key, new SingleOptionInput(width, entries, Component.literal(label), true));
     }
 
