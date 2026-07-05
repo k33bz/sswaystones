@@ -77,6 +77,11 @@ public final class SettingsDialog {
         // waystone's CURRENT mode is always included so re-saving never silently downgrades it. The
         // colored displays give openness feedback (Private=gray .. Server=gold). This is UI only —
         // the AccessSettings fields and the sgui menu's three toggles are unchanged.
+        //
+        // ACCESS-UI SOURCE OF TRUTH: AccessMode is the single source of truth for the access mapping,
+        // shared by this dialog AND the Bedrock dropdown (BedrockViewerGui.getSettingsForm). The sgui
+        // AccessSettingsGui (JavaViewerGui) deliberately keeps its own independent 3-toggle logic — a
+        // documented known divergence, not refactored, so the frozen menu's behavior is untouched.
         AccessMode currentMode = AccessMode.fromSettings(access.isServerOwned(), access.isGlobal(), access.hasTeam());
         List<AccessMode> modes = AccessMode.availableModes(currentMode, teamAvailable, globalAvailable, serverAvailable);
         List<SingleOptionInput.Entry> accessEntries = new ArrayList<>();
@@ -89,11 +94,13 @@ public final class SettingsDialog {
         inputs.add(DialogInputs.bool("hidename", componentString("gui.sswaystones.toggle_hide_name"),
                 access.isNameHidden(), inputWidth));
 
-        // Submit carries the single access mode + hidename. The backend maps access:<mode> back to
-        // the same setGlobal/setServerOwned/setTeam calls (re-checking the same permissions), so the
-        // /waystonesettings apply field semantics are unchanged.
-        String template = "waystonesettings apply " + waystone.getHash() + " name:$(name)"
-                + " access:$(access) hidename:$(hidename)";
+        // Submit carries the single access mode + hidename. The backend (WaystonesCommand.applySettings,
+        // via ApplyArgs) maps access:<mode> through AccessMode — the single source of truth — back to
+        // the same setGlobal/setServerOwned/setTeam calls, re-checking the same permissions. name: is
+        // LAST because ApplyArgs consumes it greedily to end-of-string (so a name with a colon, e.g.
+        // "Base: north", isn't truncated).
+        String template = "waystonesettings apply " + waystone.getHash()
+                + " access:$(access) hidename:$(hidename) name:$(name)";
 
         // Done + Cancel share ONE row (columns = 2). Both live in the actions list; there is no
         // separate exitAction so they don't stack/overlap. Done carries a demo hover tooltip (only

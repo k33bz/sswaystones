@@ -261,6 +261,11 @@ public class JavaViewerGui extends SimpleGui {
         }
 
         private void updateMenu() {
+            // NOTE: this sgui menu deliberately keeps its OWN independent 3-toggle access logic (a
+            // documented known divergence). AccessMode is the single source of truth for the native
+            // dialog (SettingsDialog) and the Bedrock dropdown (BedrockViewerGui) — this frozen menu
+            // is intentionally not refactored onto it. The only addition here is the Hide Name toggle.
+
             // Framing
             for (int i = 0; i < (9 * 3); i++) {
                 this.setSlot(i, new GuiElementBuilder(Items.STAINED_GLASS_PANE.gray()).setName(Component
@@ -322,7 +327,22 @@ public class JavaViewerGui extends SimpleGui {
                 slot += 1;
             }
 
-            // If no settings were available
+            // Hide Name (credit Hellscaped, upstream PR #51) — pinned to the right end of the row so
+            // the DEFAULT sgui UI also exposes hideName (previously dialog + Bedrock only). Always
+            // available to anyone who can edit the waystone. Green when the toggle is ACTIVE (name
+            // hidden) / red when inactive, matching the other sgui toggles' "green = on" convention
+            // and the dialog's On=green Hide Name entry. Uses the existing getter/setter — no data change.
+            GuiElementBuilder hideNameToggle = new GuiElementBuilder(Items.NAME_TAG)
+                    .setName(Component.translatable("gui.sswaystones.toggle_hide_name")
+                            .withStyle(accessSettings.isNameHidden() ? ChatFormatting.GREEN : ChatFormatting.RED));
+            hideNameToggle.setCallback((index, type, action, gui) -> {
+                accessSettings.setNameHidden(!accessSettings.isNameHidden());
+                this.updateMenu();
+            });
+            this.setSlot(16, hideNameToggle);
+
+            // If no ACCESS settings were available (the Hide Name toggle above is always present, so
+            // the counter still reflects only the three permission-gated access toggles).
             if (slot == 10) {
                 this.setSlot(13,
                         new GuiElementBuilder(Items.BARRIER)
