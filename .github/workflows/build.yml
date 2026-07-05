@@ -20,9 +20,13 @@ jobs:
       # resolution. continue-on-error keeps a red 26.3 build from blocking the fork
       # while still surfacing the resolution error. See README-26.3.md. Remove the
       # continue-on-error line (and rename the step) once the 26.3 artifacts exist.
+      #
+      # spotless is excluded (as on the other branches) so that once the deps DO
+      # resolve, this exercises compile+test rather than tripping over the flaky
+      # external eclipse() formatter download (download.eclipse.org p2 SPOF).
       - name: Build + tests (26.3 stub — allowed to fail until deps publish)
         continue-on-error: true
-        run: ./gradlew build
+        run: ./gradlew build -x spotlessJava -x spotlessCheck -x spotlessMisc
       - name: Diagnose mappings (only on failure)
         if: failure()
         run: |
