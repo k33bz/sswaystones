@@ -54,6 +54,19 @@ public final class DialogInputs {
         return new Input(key, new SingleOptionInput(width, entries, Component.literal(label), true));
     }
 
+    /** One selector entry: submitted id, its colored display text, and whether it starts selected. */
+    public static SingleOptionInput.Entry entry(String id, String display, ChatFormatting color, boolean initial) {
+        return new SingleOptionInput.Entry(id, Optional.of(Component.literal(display).withStyle(color)), initial);
+    }
+
+    /**
+     * A single-option (cycling) picker bound to {@code key} built from pre-made {@link #entry}
+     * entries. The submitted value is the selected entry's id.
+     */
+    public static Input singleOption(String key, String label, int width, List<SingleOptionInput.Entry> entries) {
+        return new Input(key, new SingleOptionInput(width, entries, Component.literal(label), true));
+    }
+
     /**
      * A submit action that runs {@code template} with the dialog's input values substituted in
      * ({@code $(key)} placeholders). {@link ParsedTemplate} has no public constructor, so we decode

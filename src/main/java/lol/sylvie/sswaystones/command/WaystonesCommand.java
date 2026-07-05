@@ -17,6 +17,7 @@ import lol.sylvie.sswaystones.Waystones;
 import lol.sylvie.sswaystones.block.ModBlocks;
 import lol.sylvie.sswaystones.config.Configuration;
 import lol.sylvie.sswaystones.config.Description;
+import lol.sylvie.sswaystones.gui.AccessMode;
 import lol.sylvie.sswaystones.gui.ViewerUtil;
 import lol.sylvie.sswaystones.storage.WaystoneRecord;
 import lol.sylvie.sswaystones.storage.WaystoneStorage;
@@ -303,6 +304,23 @@ public class WaystonesCommand {
         String server = extractToken(rest, "server");
         if (isSet(server) && Permissions.check(player, "sswaystones.create.server", PermissionLevel.ADMINS))
             access.setServerOwned(parseBool(server));
+
+        // Single "access mode" form used by the native dialog's Access selector. Maps one mutually-
+        // exclusive mode back to the same three fields, re-checking the SAME permissions server-side
+        // (PRIVATE always allowed) so a hand-crafted access:server can't escalate. The per-field
+        // global:/team:/server: params above still work for any other caller.
+        String accessMode = extractToken(rest, "access");
+        if (isSet(accessMode)) {
+            AccessMode mode = AccessMode.fromId(accessMode);
+            boolean canTeam = player.getTeam() != null && Permissions.check(player, "sswaystones.create.team", true);
+            boolean canGlobal = Permissions.check(player, "sswaystones.create.global", true);
+            boolean canServer = Permissions.check(player, "sswaystones.create.server", PermissionLevel.ADMINS);
+            if (mode.isAllowed(canTeam, canGlobal, canServer)) {
+                access.setGlobal(mode.global());
+                access.setServerOwned(mode.serverOwned());
+                access.setTeam(mode.team(player.getTeam() != null ? player.getTeam().getName() : ""));
+            }
+        }
 
         String hidename = extractToken(rest, "hidename");
         if (isSet(hidename))

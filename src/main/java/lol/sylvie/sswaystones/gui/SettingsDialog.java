@@ -21,6 +21,7 @@ import net.minecraft.server.dialog.Input;
 import net.minecraft.server.dialog.MultiActionDialog;
 import net.minecraft.server.dialog.body.DialogBody;
 import net.minecraft.server.dialog.body.PlainMessage;
+import net.minecraft.server.dialog.input.SingleOptionInput;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.scores.PlayerTeam;
@@ -71,28 +72,28 @@ public final class SettingsDialog {
         inputs.add(DialogInputs.text("name", componentString("gui.sswaystones.change_name"),
                 waystone.getWaystoneName(), 32, inputWidth));
 
-        // Only offer a toggle the player is permitted to change. Fields not offered are passed
-        // through untouched by the backend (it re-checks perms too). The Hide Name toggle is always
-        // offered to anyone who can edit the waystone (parity with the Bedrock form addition).
-        // Labels reuse sylvxa's original short toggle_* keys (shared with the sgui menu); the muted
-        // body line above carries the what-each-mode-does help instead.
-        if (globalAvailable)
-            inputs.add(DialogInputs.bool("global", componentString("gui.sswaystones.toggle_global"),
-                    access.isGlobal(), inputWidth));
-        if (teamAvailable)
-            inputs.add(DialogInputs.bool("team", componentString("gui.sswaystones.toggle_team"),
-                    access.hasTeam(), inputWidth));
-        if (serverAvailable)
-            inputs.add(DialogInputs.bool("server", componentString("gui.sswaystones.toggle_server"),
-                    access.isServerOwned(), inputWidth));
+        // ONE cycling "Access" selector collapses the three underlying booleans/team into a single
+        // mutually-exclusive choice. Options are filtered by the player's permissions, but the
+        // waystone's CURRENT mode is always included so re-saving never silently downgrades it. The
+        // colored displays give openness feedback (Private=gray .. Server=gold). This is UI only —
+        // the AccessSettings fields and the sgui menu's three toggles are unchanged.
+        AccessMode currentMode = AccessMode.fromSettings(access.isServerOwned(), access.isGlobal(), access.hasTeam());
+        List<AccessMode> modes = AccessMode.availableModes(currentMode, teamAvailable, globalAvailable, serverAvailable);
+        List<SingleOptionInput.Entry> accessEntries = new ArrayList<>();
+        for (AccessMode m : modes)
+            accessEntries.add(DialogInputs.entry(m.id(), modeLabel(m), modeColor(m), m == currentMode));
+        inputs.add(DialogInputs.singleOption("access", componentString("gui.sswaystones.dialog_access_label"),
+                inputWidth, accessEntries));
+
+        // Hide Name stays its own On/Off toggle (green/red), unchanged.
         inputs.add(DialogInputs.bool("hidename", componentString("gui.sswaystones.toggle_hide_name"),
                 access.isNameHidden(), inputWidth));
 
-        // The submit command carries every placeholder; inputs that weren't offered resolve to a
-        // literal "-" sentinel the backend treats as "leave unchanged".
+        // Submit carries the single access mode + hidename. The backend maps access:<mode> back to
+        // the same setGlobal/setServerOwned/setTeam calls (re-checking the same permissions), so the
+        // /waystonesettings apply field semantics are unchanged.
         String template = "waystonesettings apply " + waystone.getHash() + " name:$(name)"
-                + " global:" + (globalAvailable ? "$(global)" : "-") + " team:" + (teamAvailable ? "$(team)" : "-")
-                + " server:" + (serverAvailable ? "$(server)" : "-") + " hidename:$(hidename)";
+                + " access:$(access) hidename:$(hidename)";
 
         // Done + Cancel share ONE row (columns = 2). Both live in the actions list; there is no
         // separate exitAction so they don't stack/overlap. Done carries a demo hover tooltip (only
@@ -124,5 +125,25 @@ public final class SettingsDialog {
     // the label human-readable server-side without needing a resolved client locale.
     private static String componentString(String translationKey) {
         return Component.translatable(translationKey).getString();
+    }
+
+    // Human-readable label for an access mode (the selector entry display text).
+    private static String modeLabel(AccessMode mode) {
+        return switch (mode) {
+            case PRIVATE -> componentString("gui.sswaystones.access_private");
+            case TEAM -> componentString("gui.sswaystones.access_team");
+            case GLOBAL -> componentString("gui.sswaystones.access_global");
+            case SERVER -> componentString("gui.sswaystones.access_server");
+        };
+    }
+
+    // Color the option display by openness, for at-a-glance feedback.
+    private static ChatFormatting modeColor(AccessMode mode) {
+        return switch (mode) {
+            case PRIVATE -> ChatFormatting.GRAY;
+            case TEAM -> ChatFormatting.AQUA;
+            case GLOBAL -> ChatFormatting.GREEN;
+            case SERVER -> ChatFormatting.GOLD;
+        };
     }
 }
