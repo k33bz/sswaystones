@@ -197,8 +197,45 @@ public class WaystonesCommand {
         // A field value of "-" means "leave unchanged" (the Dialog emits it for toggles the player
         // wasn't offered). The whole tail is a single greedy string because dialog $(key)
         // substitution produces one argument.
-        dispatcher.register(literal("waystonesettings").then(literal("apply")
-                .then(argument("args", StringArgumentType.greedyString()).executes(WaystonesCommand::applySettings))));
+        dispatcher.register(literal("waystonesettings")
+                .then(literal("apply").then(
+                        argument("args", StringArgumentType.greedyString()).executes(WaystonesCommand::applySettings)))
+                // Test-support hooks (permission 0) so the headless bot suite can drive flows that
+                // ride on client interactions ViaProxy doesn't bridge (right-click a waystone to
+                // open the viewer / sneak-settings). testcreate makes a waystone at the caller's feet
+                // and prints its hash; testopen opens the Java viewer for a given hash.
+                .then(literal("testcreate").executes(WaystonesCommand::testCreate))
+                .then(literal("testopen").then(argument("hash", StringArgumentType.word())
+                        .executes(WaystonesCommand::testOpen))));
+    }
+
+    // Creates a waystone at the caller's block position (as if placed by them) and echoes the hash,
+    // so a bot can obtain a real, storage-tracked waystone deterministically over RCON/command.
+    private static int testCreate(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context)
+            throws CommandSyntaxException {
+        ServerPlayer player = context.getSource().getPlayerOrException();
+        WaystoneStorage storage = WaystoneStorage.getServerState(context.getSource().getServer());
+        WaystoneRecord record = storage.createWaystone(player.blockPosition(), player.level(), player);
+        if (record == null)
+            return 0; // createWaystone already messaged the player (perm/limit)
+        String hash = record.getHash();
+        context.getSource().sendSuccess(() -> Component.literal("waystone_created " + hash), false);
+        return 1;
+    }
+
+    // Opens the Java viewer for the given waystone hash (routes through ViewerUtil exactly like a
+    // right-click would), so the viewer path is reachable without a use_entity packet.
+    private static int testOpen(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context)
+            throws CommandSyntaxException {
+        ServerPlayer player = context.getSource().getPlayerOrException();
+        WaystoneStorage storage = WaystoneStorage.getServerState(context.getSource().getServer());
+        WaystoneRecord record = storage.getWaystone(StringArgumentType.getString(context, "hash"));
+        if (record == null) {
+            throw new CommandSyntaxException(CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument(),
+                    Component.translatable("command.sswaystones.waystone_not_found"));
+        }
+        ViewerUtil.openGui(player, record);
+        return 1;
     }
 
     // Parses "key:value" tokens out of the greedy args tail. Values may contain spaces only for the
