@@ -51,10 +51,16 @@ public class WaystoneBlockEntity extends BlockEntity {
     public static void tick(Level world, WaystoneBlockEntity waystoneEntity) {
         WaystoneRecord record = waystoneEntity.getThisWaystone(world);
         boolean waystoneOwned = record != null;
-        boolean shouldCreateName = record != null && waystoneEntity.nameDisplay == null;
+        // hideName (credit Hellscaped, upstream PR #51): when the access setting is on,
+        // the floating name element is not created at all. The presence of nameDisplay
+        // must track the setting, so recreate the hologram whenever they disagree — this
+        // makes a runtime toggle (from the settings UI) take effect on the next tick.
+        boolean wantName = record != null && !record.getAccessSettings().isNameHidden();
+        boolean haveName = waystoneEntity.nameDisplay != null;
+        boolean nameStateChanged = wantName != haveName;
 
         // Create the display itself
-        if (waystoneEntity.eyeDisplay == null || shouldCreateName) {
+        if (waystoneEntity.eyeDisplay == null || nameStateChanged) {
             waystoneEntity.createHologramDisplay(world);
         }
 
@@ -150,8 +156,9 @@ public class WaystoneBlockEntity extends BlockEntity {
 
         holder.addElement(eyeDisplay);
 
-        // Waystone name display
-        if (exists) {
+        // Waystone name display — skipped entirely when the owner has hidden the name
+        // (credit Hellscaped, upstream PR #51).
+        if (exists && !record.getAccessSettings().isNameHidden()) {
             nameDisplay = new TextDisplayElement();
 
             nameDisplay.setText(record.getWaystoneText());
@@ -165,11 +172,19 @@ public class WaystoneBlockEntity extends BlockEntity {
     }
 
     public void removeDisplay() {
-        if (eyeDisplay != null)
+        if (eyeDisplay != null) {
             holder.removeElement(eyeDisplay);
-        if (nameDisplay != null)
+            eyeDisplay = null;
+        }
+        if (nameDisplay != null) {
             holder.removeElement(nameDisplay);
-        if (attachment != null)
+            // Null the field so tick()'s wantName/haveName comparison reflects reality
+            // after a rebuild that intentionally omits the name (hideName on).
+            nameDisplay = null;
+        }
+        if (attachment != null) {
             attachment.destroy();
+            attachment = null;
+        }
     }
 }

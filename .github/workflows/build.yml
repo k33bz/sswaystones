@@ -1,0 +1,42 @@
+name: build
+
+on:
+  push:
+    branches: [main, '26.*']
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+          cache: gradle
+      - name: Build + tests
+        run: ./gradlew build
+      - name: Diagnose mappings (only on failure)
+        if: failure()
+        run: |
+          J=$(find ~/.gradle/caches/fabric-loom -name "*minecraft*.jar" 2>/dev/null | grep -viE "sources|javadoc|intermediary" | head -1)
+          echo "== minecraft jar: $J"
+          echo "== ServerPlayer (openDialog / teleport)"
+          javap -cp "$J" net.minecraft.server.level.ServerPlayer 2>/dev/null | grep -iE "openDialog|teleport"
+          echo "== Dialog API surface"
+          unzip -l "$J" 2>/dev/null | grep -iE "server/dialog/" | head -40 || true
+          javap -cp "$J" net.minecraft.server.dialog.MultiActionDialog 2>/dev/null || true
+          javap -cp "$J" net.minecraft.server.dialog.CommonDialogData 2>/dev/null || true
+          javap -cp "$J" net.minecraft.server.dialog.input.TextInput 2>/dev/null || true
+          javap -cp "$J" net.minecraft.server.dialog.input.SingleOptionInput 2>/dev/null || true
+          javap -cp "$J" 'net.minecraft.server.dialog.input.SingleOptionInput$Entry' 2>/dev/null || true
+          javap -cp "$J" net.minecraft.server.dialog.action.ParsedTemplate 2>/dev/null || true
+          echo "== Items (gray glass helper) / TeamColor"
+          javap -cp "$J" net.minecraft.world.item.Items 2>/dev/null | grep -iE "STAINED_GLASS_PANE|gray" | head
+          javap -cp "$J" net.minecraft.world.scores.TeamColor 2>/dev/null || true
+      - name: Upload jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: sswaystones-${{ github.ref_name }}
+          path: build/libs/*.jar

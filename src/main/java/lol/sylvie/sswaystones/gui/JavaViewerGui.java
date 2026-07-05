@@ -8,6 +8,7 @@ import eu.pb4.sgui.api.ClickType;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
 import eu.pb4.sgui.api.gui.*;
 import java.util.List;
+import lol.sylvie.sswaystones.Waystones;
 import lol.sylvie.sswaystones.storage.PlayerData;
 import lol.sylvie.sswaystones.storage.WaystoneRecord;
 import lol.sylvie.sswaystones.storage.WaystoneStorage;
@@ -25,7 +26,7 @@ import net.minecraft.world.scores.PlayerTeam;
 import org.jetbrains.annotations.Nullable;
 
 public class JavaViewerGui extends SimpleGui {
-    private static final int ITEMS_PER_PAGE = 9 * 5;
+    private static final int ITEMS_PER_PAGE = WaystoneViewerLogic.ITEMS_PER_PAGE;
     private final WaystoneRecord waystone;
     private int pageIndex = 0;
 
@@ -38,7 +39,7 @@ public class JavaViewerGui extends SimpleGui {
 
         WaystoneStorage storage = WaystoneStorage.getServerState(player.level().getServer());
         this.accessible = storage.getAccessibleWaystones(player, waystone);
-        this.maxPages = Math.max(Math.ceilDiv(this.accessible.size(), ITEMS_PER_PAGE), 1);
+        this.maxPages = WaystoneViewerLogic.maxPages(this.accessible.size());
 
         this.updateMenu();
     }
@@ -74,18 +75,17 @@ public class JavaViewerGui extends SimpleGui {
                 element.glow(true);
 
             lore.add(Component.translatable("gui.sswaystones.entry_teleport").withStyle(ChatFormatting.GRAY));
-            boolean canForget = !record.getAccessSettings().isEffectivelyGlobal()
-                    && !record.getOwnerUUID().equals(player.getUUID());
-            if (canForget)
+            boolean ownedByViewer = record.getOwnerUUID().equals(player.getUUID());
+            if (WaystoneViewerLogic.showForgetLore(record.getAccessSettings().isEffectivelyGlobal(), ownedByViewer))
                 lore.add(Component.translatable("gui.sswaystones.entry_forget").withStyle(ChatFormatting.DARK_GRAY));
             element.setLore(lore);
 
             element.setCallback((index, type, action, gui) -> {
                 if (type.isRight) {
                     WaystoneStorage storage = WaystoneStorage.getServerState(player.level().getServer());
-                    if (!record.getAccessSettings().isEffectivelyGlobal()
-                            && !record.getOwnerUUID().equals(player.getUUID())
-                            && storage.waystones.containsKey(record.getHash()))
+                    if (WaystoneViewerLogic.canForget(record.getAccessSettings().isEffectivelyGlobal(),
+                            record.getOwnerUUID().equals(player.getUUID()),
+                            storage.waystones.containsKey(record.getHash())))
                         new ConfirmDeleteGui(waystone, record, player).open();
                 } else {
                     record.handleTeleport(player);
@@ -101,9 +101,8 @@ public class JavaViewerGui extends SimpleGui {
         }
 
         // Gui controls — only show the page arrows when there's actually more than one
-        // page,
-        // so a single-page list isn't cluttered with dead "Page 1 of 1" controls.
-        if (maxPages > 1) {
+        // page, so a single-page list isn't cluttered with dead "Page 1 of 1" controls.
+        if (WaystoneViewerLogic.showPageArrows(maxPages)) {
             List<Component> pageLore = List
                     .of(Component.translatable("gui.sswaystones.page_indicator", pageIndex + 1, maxPages)
                             .withStyle(ChatFormatting.GRAY));
@@ -139,33 +138,44 @@ public class JavaViewerGui extends SimpleGui {
                     .setName(Component.translatable("gui.sswaystones.change_icon").withStyle(ChatFormatting.YELLOW))
                     .glow().setCallback((index, type, action, gui) -> new IconGui(waystone, player).open()));
 
+            // When the native-Dialog settings UI is selected, name-editing is FOLDED INTO the
+            // dialog (matching Bedrock), so the separate anvil NameGui is bypassed — the name-tag
+            // button opens the same dialog. When the flag is "sgui" (default) behavior is unchanged.
+            boolean dialogMode = Waystones.configuration.settingsUi().isDialog();
+
             this.setSlot(52, new GuiElementBuilder(Items.NAME_TAG)
                     .setName(Component.translatable("gui.sswaystones.change_name").withStyle(ChatFormatting.YELLOW))
-                    .setCallback((index, type, action, gui) -> new NameGui(waystone, player).open()));
+                    .setCallback((index, type, action, gui) -> {
+                        if (dialogMode) {
+                            gui.close();
+                            SettingsDialog.open(player, waystone);
+                        } else {
+                            new NameGui(waystone, player).open();
+                        }
+                    }));
 
             this.setSlot(53,
                     new GuiElementBuilder(Items.CARTOGRAPHY_TABLE)
                             .setName(Component.translatable("gui.sswaystones.access_settings")
                                     .withStyle(ChatFormatting.LIGHT_PURPLE))
-                            .setCallback((index, type, action, gui) -> new AccessSettingsGui(waystone, player).open()));
+                            .setCallback((index, type, action, gui) -> {
+                                if (dialogMode) {
+                                    gui.close();
+                                    SettingsDialog.open(player, waystone);
+                                } else {
+                                    new AccessSettingsGui(waystone, player).open();
+                                }
+                            }));
         }
     }
 
     public void previousPage() {
-        pageIndex--;
-        if (pageIndex < 0) {
-            pageIndex = maxPages - 1;
-        }
-
+        pageIndex = WaystoneViewerLogic.previousPage(pageIndex, maxPages);
         this.updateMenu();
     }
 
     public void nextPage() {
-        pageIndex++;
-        if (pageIndex >= maxPages) {
-            pageIndex = 0;
-        }
-
+        pageIndex = WaystoneViewerLogic.nextPage(pageIndex, maxPages);
         this.updateMenu();
     }
 
