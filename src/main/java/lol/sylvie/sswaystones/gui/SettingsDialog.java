@@ -52,29 +52,36 @@ public final class SettingsDialog {
         boolean teamAvailable = team != null && Permissions.check(player, "sswaystones.create.team", true);
         boolean serverAvailable = Permissions.check(player, "sswaystones.create.server", PermissionLevel.ADMINS);
 
+        // LAYOUT sizing. The vanilla dialog stacks each input + body element on its own row; at
+        // default GUI scale the whole form was overflowing vertically, which clipped the Done button
+        // behind Cancel. So: a single short body line (one row instead of a wrapped block), narrower
+        // inputs, and Done + Cancel placed SIDE-BY-SIDE in a 2-column action row (below) instead of
+        // stacking. Presentation only — no reachable state or behavior changes.
+        final int inputWidth = 140;
+
         List<DialogBody> body = new ArrayList<>();
         body.add(new PlainMessage(
                 Component.translatable("gui.sswaystones.dialog_settings_instruction").withStyle(ChatFormatting.GRAY),
-                250));
+                200));
 
         List<Input> inputs = new ArrayList<>();
         inputs.add(DialogInputs.text("name", componentString("gui.sswaystones.change_name"),
-                waystone.getWaystoneName(), 32, 200));
+                waystone.getWaystoneName(), 32, inputWidth));
 
         // Only offer a toggle the player is permitted to change. Fields not offered are passed
         // through untouched by the backend (it re-checks perms too). The Hide Name toggle is always
         // offered to anyone who can edit the waystone (parity with the Bedrock form addition).
         if (globalAvailable)
             inputs.add(DialogInputs.bool("global", componentString("gui.sswaystones.toggle_global"),
-                    access.isGlobal(), 200));
+                    access.isGlobal(), inputWidth));
         if (teamAvailable)
             inputs.add(DialogInputs.bool("team", componentString("gui.sswaystones.toggle_team"),
-                    access.hasTeam(), 200));
+                    access.hasTeam(), inputWidth));
         if (serverAvailable)
             inputs.add(DialogInputs.bool("server", componentString("gui.sswaystones.toggle_server"),
-                    access.isServerOwned(), 200));
+                    access.isServerOwned(), inputWidth));
         inputs.add(DialogInputs.bool("hidename", componentString("gui.sswaystones.toggle_hide_name"),
-                access.isNameHidden(), 200));
+                access.isNameHidden(), inputWidth));
 
         // The submit command carries every placeholder; inputs that weren't offered resolve to a
         // literal "-" sentinel the backend treats as "leave unchanged".
@@ -82,10 +89,19 @@ public final class SettingsDialog {
                 + " global:" + (globalAvailable ? "$(global)" : "-") + " team:" + (teamAvailable ? "$(team)" : "-")
                 + " server:" + (serverAvailable ? "$(server)" : "-") + " hidename:$(hidename)";
 
+        // Done + Cancel share ONE row (columns = 2). Both live in the actions list; there is no
+        // separate exitAction so they don't stack/overlap. Done carries a demo hover tooltip (only
+        // action buttons support tooltips in this API — inputs/options do not). Cancel has an empty
+        // action, so with DialogAction.CLOSE it simply closes the dialog.
+        final int buttonWidth = 100;
         List<ActionButton> buttons = new ArrayList<>();
         buttons.add(new ActionButton(
-                new CommonButtonData(Component.translatable("gui.sswaystones.dialog_done"), 150),
+                new CommonButtonData(Component.translatable("gui.sswaystones.dialog_done"),
+                        Optional.of(Component.translatable("gui.sswaystones.dialog_done_tooltip")), buttonWidth),
                 DialogInputs.command(template)));
+        buttons.add(new ActionButton(
+                new CommonButtonData(Component.translatable("gui.sswaystones.dialog_cancel"), buttonWidth),
+                Optional.empty()));
 
         CommonDialogData common = new CommonDialogData(
                 Component.translatable("gui.sswaystones.access_settings"), Optional.empty(),
@@ -94,10 +110,7 @@ public final class SettingsDialog {
                 DialogAction.CLOSE, // buttons close; the backend reopens the viewer
                 body, inputs);
 
-        Dialog dialog = new MultiActionDialog(common, buttons,
-                Optional.of(new ActionButton(new CommonButtonData(
-                        Component.translatable("gui.sswaystones.dialog_cancel"), 150), Optional.empty())),
-                1);
+        Dialog dialog = new MultiActionDialog(common, buttons, Optional.empty(), 2);
 
         player.openDialog(Holder.direct(dialog));
     }
