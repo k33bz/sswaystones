@@ -59,9 +59,12 @@ public final class SettingsDialog {
         // stacking. Presentation only — no reachable state or behavior changes.
         final int inputWidth = 140;
 
+        // One muted helper line explaining the three non-obvious access modes (rename is
+        // self-evident; Hide Name is self-explanatory — both omitted). The footer buttons are fixed
+        // and the body scrolls, so a wrapping line is fine.
         List<DialogBody> body = new ArrayList<>();
         body.add(new PlainMessage(
-                Component.translatable("gui.sswaystones.dialog_settings_instruction").withStyle(ChatFormatting.GRAY),
+                Component.translatable("gui.sswaystones.dialog_access_help").withStyle(ChatFormatting.GRAY),
                 200));
 
         List<Input> inputs = new ArrayList<>();
@@ -71,20 +74,18 @@ public final class SettingsDialog {
         // Only offer a toggle the player is permitted to change. Fields not offered are passed
         // through untouched by the backend (it re-checks perms too). The Hide Name toggle is always
         // offered to anyone who can edit the waystone (parity with the Bedrock form addition).
-        //
-        // These use DIALOG-SPECIFIC label keys (dialog_toggle_*) that spell out what each setting
-        // does, since input widgets can't carry tooltips. The frozen sgui menu keeps its own short
-        // toggle_* labels — deliberately not shared.
+        // Labels reuse sylvxa's original short toggle_* keys (shared with the sgui menu); the muted
+        // body line above carries the what-each-mode-does help instead.
         if (globalAvailable)
-            inputs.add(DialogInputs.bool("global", componentString("gui.sswaystones.dialog_toggle_global"),
+            inputs.add(DialogInputs.bool("global", componentString("gui.sswaystones.toggle_global"),
                     access.isGlobal(), inputWidth));
         if (teamAvailable)
-            inputs.add(DialogInputs.bool("team", componentString("gui.sswaystones.dialog_toggle_team"),
+            inputs.add(DialogInputs.bool("team", componentString("gui.sswaystones.toggle_team"),
                     access.hasTeam(), inputWidth));
         if (serverAvailable)
-            inputs.add(DialogInputs.bool("server", componentString("gui.sswaystones.dialog_toggle_server"),
+            inputs.add(DialogInputs.bool("server", componentString("gui.sswaystones.toggle_server"),
                     access.isServerOwned(), inputWidth));
-        inputs.add(DialogInputs.bool("hidename", componentString("gui.sswaystones.dialog_toggle_hide_name"),
+        inputs.add(DialogInputs.bool("hidename", componentString("gui.sswaystones.toggle_hide_name"),
                 access.isNameHidden(), inputWidth));
 
         // The submit command carries every placeholder; inputs that weren't offered resolve to a
