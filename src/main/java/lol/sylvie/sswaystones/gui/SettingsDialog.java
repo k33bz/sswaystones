@@ -71,16 +71,20 @@ public final class SettingsDialog {
         // Only offer a toggle the player is permitted to change. Fields not offered are passed
         // through untouched by the backend (it re-checks perms too). The Hide Name toggle is always
         // offered to anyone who can edit the waystone (parity with the Bedrock form addition).
+        //
+        // These use DIALOG-SPECIFIC label keys (dialog_toggle_*) that spell out what each setting
+        // does, since input widgets can't carry tooltips. The frozen sgui menu keeps its own short
+        // toggle_* labels — deliberately not shared.
         if (globalAvailable)
-            inputs.add(DialogInputs.bool("global", componentString("gui.sswaystones.toggle_global"),
+            inputs.add(DialogInputs.bool("global", componentString("gui.sswaystones.dialog_toggle_global"),
                     access.isGlobal(), inputWidth));
         if (teamAvailable)
-            inputs.add(DialogInputs.bool("team", componentString("gui.sswaystones.toggle_team"),
+            inputs.add(DialogInputs.bool("team", componentString("gui.sswaystones.dialog_toggle_team"),
                     access.hasTeam(), inputWidth));
         if (serverAvailable)
-            inputs.add(DialogInputs.bool("server", componentString("gui.sswaystones.toggle_server"),
+            inputs.add(DialogInputs.bool("server", componentString("gui.sswaystones.dialog_toggle_server"),
                     access.isServerOwned(), inputWidth));
-        inputs.add(DialogInputs.bool("hidename", componentString("gui.sswaystones.toggle_hide_name"),
+        inputs.add(DialogInputs.bool("hidename", componentString("gui.sswaystones.dialog_toggle_hide_name"),
                 access.isNameHidden(), inputWidth));
 
         // The submit command carries every placeholder; inputs that weren't offered resolve to a
