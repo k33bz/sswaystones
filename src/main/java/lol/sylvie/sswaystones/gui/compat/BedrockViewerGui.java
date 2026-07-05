@@ -4,15 +4,16 @@
 */
 package lol.sylvie.sswaystones.gui.compat;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import lol.sylvie.sswaystones.gui.AccessMode;
 import lol.sylvie.sswaystones.storage.PlayerData;
 import lol.sylvie.sswaystones.storage.WaystoneRecord;
 import lol.sylvie.sswaystones.storage.WaystoneStorage;
 import lol.sylvie.sswaystones.util.NameGenerator;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.scores.PlayerTeam;
 import org.geysermc.cumulus.component.ButtonComponent;
 import org.geysermc.cumulus.form.CustomForm;
 import org.geysermc.cumulus.form.Form;
@@ -119,62 +120,63 @@ public class BedrockViewerGui {
         WaystoneRecord.AccessSettings accessSettings = waystone.getAccessSettings();
         builder.input("Waystone Name", NameGenerator.generateName(), waystone.getWaystoneName());
 
+        // ACCESS-UI SOURCE OF TRUTH: like the Java dialog (SettingsDialog), the Bedrock form presents
+        // access as ONE dropdown routed through AccessMode — the single source of truth for the
+        // options, the current-mode mapping, and the mode->fields apply. (The sgui AccessSettingsGui
+        // keeps its own independent 3-toggle logic — a documented known divergence.)
         boolean globalAvailable = Permissions.check(player, "sswaystones.create.global", true);
-        if (globalAvailable) {
-            builder.toggle("Global", accessSettings.isGlobal());
-        }
-
         boolean teamAvailable = player.getTeam() != null && Permissions.check(player, "sswaystones.create.team", true);
-        if (teamAvailable) {
-            builder.toggle("Team", accessSettings.hasTeam());
-        }
-
         boolean serverAvailable = Permissions.check(player, "sswaystones.create.server", 4);
-        if (serverAvailable) {
-            builder.toggle("Server-Owned", accessSettings.isServerOwned());
-        }
+
+        AccessMode currentMode = AccessMode.fromSettings(accessSettings.isServerOwned(), accessSettings.isGlobal(),
+                accessSettings.hasTeam());
+        List<AccessMode> modes = AccessMode.availableModes(currentMode, teamAvailable, globalAvailable, serverAvailable);
+        List<String> modeLabels = new ArrayList<>();
+        for (AccessMode m : modes)
+            modeLabels.add(bedrockModeLabel(m));
+        int defaultIndex = Math.max(modes.indexOf(currentMode), 0);
+        builder.dropdown("Access", modeLabels, defaultIndex);
 
         // Hide Name toggle (credit Hellscaped, upstream PR #51): offered to anyone who can edit the
         // waystone — Bedrock players can read the floating name through walls, so hiding it matters
-        // most for them. Always present (no extra permission), so it's the LAST toggle index.
+        // most for them. Always present, LAST component.
         builder.toggle("Hide Name", accessSettings.isNameHidden());
 
         builder.validResultHandler(response -> {
-            String name = response.asInput();
+            String name = response.asInput(0);
             if (name == null)
                 return;
 
-            int index = 1;
-            if (globalAvailable) {
-                boolean global = response.asToggle(index);
-                accessSettings.setGlobal(global);
-                index += 1;
+            // component order: 0 = name input, 1 = access dropdown, 2 = hide-name toggle.
+            int selected = response.asDropdown(1);
+            if (selected >= 0 && selected < modes.size()) {
+                AccessMode mode = modes.get(selected);
+                // Re-check the SAME permissions server-side (PRIVATE always allowed) — the current mode
+                // is always offered but a player still can't APPLY a mode they lack permission for.
+                boolean canServer = Permissions.check(player, "sswaystones.create.server", 4);
+                if (mode.isAllowed(teamAvailable, globalAvailable, canServer)) {
+                    accessSettings.setGlobal(mode.global());
+                    accessSettings.setServerOwned(mode.serverOwned());
+                    accessSettings.setTeam(mode.team(player.getTeam() != null ? player.getTeam().getName() : ""));
+                }
             }
 
-            if (teamAvailable) {
-                boolean team = response.asToggle(index);
-                PlayerTeam playerTeam = player.getTeam();
-                if (team && playerTeam != null) {
-                    accessSettings.setTeam(playerTeam.getName());
-                } else
-                    accessSettings.setTeam("");
-
-                index += 1;
-            }
-
-            if (serverAvailable) {
-                boolean server = response.asToggle(index);
-                accessSettings.setServerOwned(server);
-                index += 1;
-            }
-
-            // Hide Name is always the last toggle (see above).
-            boolean hideName = response.asToggle(index);
+            boolean hideName = response.asToggle(2);
             accessSettings.setNameHidden(hideName);
 
             waystone.setWaystoneName(name);
         });
 
         return builder.build();
+    }
+
+    // Human-readable dropdown label for an access mode (Bedrock side; the Java dialog uses lang keys).
+    private static String bedrockModeLabel(AccessMode mode) {
+        return switch (mode) {
+            case PRIVATE -> "Private";
+            case TEAM -> "Team";
+            case GLOBAL -> "Global";
+            case SERVER -> "Server-owned";
+        };
     }
 }
