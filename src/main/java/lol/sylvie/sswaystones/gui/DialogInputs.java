@@ -18,15 +18,13 @@ import net.minecraft.server.dialog.input.SingleOptionInput;
 import net.minecraft.server.dialog.input.TextInput;
 
 /**
- * Shared builders for the 26.x native-dialog INPUT controls (text fields and single-option
- * on/off pickers) and the {@link CommandTemplate} action that submits their values into a
- * permission-0 backend command via {@code $(key)} substitution.
+ * Builders for the native-dialog input controls and the {@link CommandTemplate} action that
+ * submits their values into a backend command via {@code $(key)} substitution.
  *
  * <p>
- * The native Dialog system has no boolean/checkbox control, so booleans are modeled as a
- * two-entry {@link SingleOptionInput} ("On"/"Off") whose selected entry id ("true"/"false") is
- * substituted into the backend command. This mirrors how the Bedrock cumulus form's
- * {@code .toggle()} values are read back in one submit handler.
+ * The dialog system has no boolean/checkbox control, so booleans are modeled as a two-entry
+ * {@link SingleOptionInput} ("On"/"Off") whose selected entry id ("true"/"false") is substituted
+ * into the command.
  */
 public final class DialogInputs {
     private DialogInputs() {
@@ -43,9 +41,8 @@ public final class DialogInputs {
      * is the string "true" or "false"; {@code initial} pre-selects the matching entry.
      */
     public static Input bool(String key, String label, boolean initial, int width) {
-        // Color the STATE text (only the On/Off entry display, not the label) green/red so it reads
-        // like the old sgui menu's colored toggles. Uniform across every toggle — On=green, Off=red
-        // (Hide Name is NOT inverted). Cosmetic: the submitted id ("true"/"false") is unchanged.
+        // On=green / Off=red display text, matching the sgui menu's toggle colors; the submitted
+        // ids stay plain "true"/"false".
         List<SingleOptionInput.Entry> entries = List.of(
                 new SingleOptionInput.Entry("true",
                         Optional.of(Component.literal("On").withStyle(ChatFormatting.GREEN)), initial),

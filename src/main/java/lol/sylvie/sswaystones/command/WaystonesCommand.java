@@ -10,6 +10,7 @@ import static net.minecraft.commands.Commands.literal;
 import com.google.gson.annotations.SerializedName;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.lang.reflect.Field;
 import java.util.*;
@@ -188,24 +189,16 @@ public class WaystonesCommand {
                             return 1;
                         })))));
 
-        // Permission-0 backend for the native settings Dialog (see SettingsDialog). Any player who
-        // can edit the target waystone may submit; the handler re-checks canPlayerEdit and the SAME
-        // per-field permissions the Dialog used to decide which toggles to offer, so a hand-crafted
-        // command cannot escalate access. Also serves as the headless bot-test hook.
-        //
-        //   waystonesettings apply <hash> name:<...> global:<t/f/-> team:<t/f/-> server:<t/f/-> hidename:<t/f/->
-        //
-        // A field value of "-" means "leave unchanged" (the Dialog emits it for toggles the player
-        // wasn't offered). The whole tail is a single greedy string because dialog $(key)
-        // substitution produces one argument.
+        // Backend for the settings dialog's submit action. `apply` is reachable by any player
+        // (permission 0) and self-guards via canPlayerEdit plus the same per-field permission
+        // checks the dialog used, so a hand-crafted command cannot escalate access. The tail is one
+        // greedy string ("-" = leave unchanged) because dialog $(key) substitution produces a
+        // single argument:
+        //   waystonesettings apply <hash> access:<mode|-> hidename:<t/f/-> name:<free text>
         dispatcher.register(literal("waystonesettings")
-                // apply stays reachable by any player (permission 0): it self-guards via
-                // canPlayerEdit + per-field/permission checks, and it's the dialog's submit backend.
                 .then(literal("apply").then(
                         argument("args", StringArgumentType.greedyString()).executes(WaystonesCommand::applySettings)))
-                // Test-support hooks. These read others' settings / mint records / open arbitrary
-                // viewers, so they are ADMIN-GATED (matching how the `sswaystones` command is gated) —
-                // they exist for the headless bot suite (op'd) and admin debugging, not for players.
+                // Admin-gated debug/test hooks: mint a waystone, open a viewer, echo stored settings.
                 .then(literal("testcreate")
                         .requires(source -> Permissions.check(source, "sswaystones.manager", PermissionLevel.ADMINS))
                         .executes(WaystonesCommand::testCreate))
@@ -217,12 +210,10 @@ public class WaystonesCommand {
                         .then(argument("hash", StringArgumentType.word()).executes(WaystonesCommand::testGet))));
     }
 
-    // Echoes the stored settings for a waystone in a stable, parseable line so the bot suite can
-    // use RCON as the assertion oracle for the settings round-trip (the SavedData store and the
-    // polymer virtual-entity name hologram aren't directly queryable via /data get entity).
+    // Echoes stored settings in a stable, parseable line (the SavedData store isn't queryable via
+    // /data get), for admin debugging and RCON-driven test assertions:
     //   waystone_settings <hash> name=<name> global=<t/f> server=<t/f> team=<team-or-> hidename=<t/f>
-    private static int testGet(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context)
-            throws CommandSyntaxException {
+    private static int testGet(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         WaystoneStorage storage = WaystoneStorage.getServerState(context.getSource().getServer());
         WaystoneRecord record = storage.getWaystone(StringArgumentType.getString(context, "hash"));
         if (record == null) {
@@ -237,10 +228,8 @@ public class WaystonesCommand {
         return 1;
     }
 
-    // Creates a waystone at the caller's block position (as if placed by them) and echoes the hash,
-    // so a bot can obtain a real, storage-tracked waystone deterministically over RCON/command.
-    private static int testCreate(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context)
-            throws CommandSyntaxException {
+    // Creates a waystone at the caller's position (as if placed by them) and echoes the hash.
+    private static int testCreate(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer player = context.getSource().getPlayerOrException();
         WaystoneStorage storage = WaystoneStorage.getServerState(context.getSource().getServer());
         WaystoneRecord record = storage.createWaystone(player.blockPosition(), player.level(), player);
@@ -251,10 +240,8 @@ public class WaystonesCommand {
         return 1;
     }
 
-    // Opens the Java viewer for the given waystone hash (routes through ViewerUtil exactly like a
-    // right-click would), so the viewer path is reachable without a use_entity packet.
-    private static int testOpen(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context)
-            throws CommandSyntaxException {
+    // Opens the viewer for the given hash, exactly like a right-click on the waystone would.
+    private static int testOpen(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer player = context.getSource().getPlayerOrException();
         WaystoneStorage storage = WaystoneStorage.getServerState(context.getSource().getServer());
         WaystoneRecord record = storage.getWaystone(StringArgumentType.getString(context, "hash"));
@@ -266,12 +253,7 @@ public class WaystonesCommand {
         return 1;
     }
 
-    // Applies the /waystonesettings apply tail. All string parsing lives in the dependency-free,
-    // unit-tested ApplyArgs (handles the "-" leave-unchanged sentinel, a name containing a colon, and
-    // the access: vs legacy-field precedence). AccessMode is the intended single source of truth for
-    // the access mapping — see the cross-reference comments at the access-UI sites.
-    private static int applySettings(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context)
-            throws CommandSyntaxException {
+    private static int applySettings(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer player = context.getSource().getPlayerOrException();
         ApplyArgs args = ApplyArgs.parse(StringArgumentType.getString(context, "args"));
 
@@ -289,16 +271,13 @@ public class WaystonesCommand {
 
         WaystoneRecord.AccessSettings access = waystone.getAccessSettings();
 
-        // Snapshot BEFORE mutating so we can (a) detect a no-op Done and (b) log the prior state if we
-        // are about to change access (which includes collapsing a legacy redundant combo). This makes
-        // the normalization recoverable from the server log.
+        // Snapshot before mutating, to detect a no-op submit and to log the prior access state.
         boolean beforeGlobal = access.isGlobal();
         boolean beforeServer = access.isServerOwned();
         String beforeTeam = access.getTeam();
         boolean beforeHidden = access.isNameHidden();
         String beforeName = waystone.getWaystoneName();
 
-        // Compute the intended NEW field values without mutating yet.
         String newName = args.newName().orElse(beforeName);
 
         boolean newGlobal = beforeGlobal;
@@ -310,9 +289,8 @@ public class WaystonesCommand {
         boolean canServer = Permissions.check(player, "sswaystones.create.server", PermissionLevel.ADMINS);
 
         if (args.accessMode().isPresent()) {
-            // Single "access mode" form (native dialog + Bedrock dropdown). Maps one mutually-exclusive
-            // mode back to the three fields, re-checking the SAME permissions (PRIVATE always allowed)
-            // so a hand-crafted access:server can't escalate. AccessMode is the single source of truth.
+            // Single access-mode form (dialog + Bedrock dropdown): map the mode back to the three
+            // fields, re-checking the same permissions the UI used to offer it.
             AccessMode mode = args.accessMode().get();
             if (mode.isAllowed(canTeam, canGlobal, canServer)) {
                 newGlobal = mode.global();
@@ -320,8 +298,7 @@ public class WaystonesCommand {
                 newTeam = mode.team(player.getTeam() != null ? player.getTeam().getName() : "");
             }
         } else {
-            // Legacy per-field form (used only when access: is absent). Each field is independently
-            // permission-gated.
+            // Legacy per-field form, each field independently permission-gated.
             if (args.global().isPresent() && canGlobal)
                 newGlobal = args.global().get();
             if (args.team().isPresent() && canTeam)
@@ -332,7 +309,6 @@ public class WaystonesCommand {
 
         boolean newHidden = args.hideName().orElse(beforeHidden);
 
-        // Skip the write entirely on a no-op Done (nothing actually changed) — no gratuitous mutation.
         boolean unchanged = newGlobal == beforeGlobal && newServer == beforeServer && newTeam.equals(beforeTeam)
                 && newHidden == beforeHidden && newName.equals(beforeName);
         if (unchanged) {
@@ -340,8 +316,8 @@ public class WaystonesCommand {
             return 1;
         }
 
-        // If we're about to change the ACCESS fields (incl. collapsing a legacy global+team combo to
-        // one mode), log the prior AccessSettings at INFO so the previous state is recoverable.
+        // Log the prior access state so a change (including collapsing a legacy global+team combo
+        // down to one mode) is recoverable from the server log.
         boolean accessChanging = newGlobal != beforeGlobal || newServer != beforeServer
                 || !newTeam.equals(beforeTeam);
         if (accessChanging) {
@@ -352,7 +328,6 @@ public class WaystonesCommand {
                     beforeTeam, beforeHidden, newGlobal, newServer, newTeam, newHidden);
         }
 
-        // Commit.
         if (!newName.equals(beforeName))
             waystone.setWaystoneName(newName);
         access.setGlobal(newGlobal);
@@ -360,7 +335,6 @@ public class WaystonesCommand {
         access.setTeam(newTeam);
         access.setNameHidden(newHidden);
 
-        // Persist (SavedData is marked dirty on every getServerState) and reopen the viewer.
         ViewerUtil.openGui(player, waystone);
         return 1;
     }

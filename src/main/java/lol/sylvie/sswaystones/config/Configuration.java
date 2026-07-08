@@ -100,22 +100,18 @@ public class Configuration {
         @Description(translation = "config.sswaystones.village_structures")
         public boolean injectVillageStructures = true;
 
-        // Which UI the Java-edition "Access Settings" button opens. "sgui" (default)
-        // preserves the existing chest-menu behavior exactly; "dialog" opens the new
-        // native 26.x server Dialog that folds name-editing and the permission-gated
-        // toggles into a single submit form (mirroring the Bedrock cumulus form).
-        // Any unrecognized value falls back to "sgui".
+        // Which UI the Java "Access Settings" button opens: "sgui" (default chest menu) or
+        // "dialog" (native server dialog). Unrecognized values fall back to "sgui".
         @SerializedName("settings_ui")
         @Description(translation = "config.sswaystones.settings_ui")
         public String settingsUi = "sgui";
     }
 
-    // --- Settings-UI selector (kept as a tiny helper so the GUI-routing decision is
-    // testable in isolation and there's one place that defines the valid values). ---
+    /** Parsed value of the {@code settings_ui} option. */
     public enum SettingsUi {
         SGUI, DIALOG;
 
-        /** Parse a config string into a mode; anything unrecognized is the safe SGUI default. */
+        /** Anything other than a case-insensitive "dialog" is the safe SGUI default. */
         public static SettingsUi fromConfig(String value) {
             if (value != null && value.trim().equalsIgnoreCase("dialog"))
                 return DIALOG;

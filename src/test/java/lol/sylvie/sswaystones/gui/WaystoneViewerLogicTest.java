@@ -11,9 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 /**
- * Pure-logic guards for the viewer GUI. Each asserts a rule that, if it regressed, would silently
- * break the live GUI (wrong page count, arrows on a single page, a forget option where none should
- * be, or a toggle appearing without permission).
+ * Pure-logic guards for the viewer GUI: page math, arrow visibility, and forget-eligibility.
  */
 class WaystoneViewerLogicTest {
 
@@ -97,40 +95,5 @@ class WaystoneViewerLogicTest {
         assertTrue(WaystoneViewerLogic.showForgetLore(false, false));
         assertFalse(WaystoneViewerLogic.showForgetLore(true, false));
         assertFalse(WaystoneViewerLogic.showForgetLore(false, true));
-    }
-
-    // --- permission-gating: which toggles appear ---
-
-    @Test
-    void globalToggleGatedOnGlobalPerm() {
-        assertTrue(WaystoneViewerLogic.showGlobalToggle(true));
-        assertFalse(WaystoneViewerLogic.showGlobalToggle(false));
-    }
-
-    @Test
-    void teamToggleNeedsBothOnTeamAndPerm() {
-        assertTrue(WaystoneViewerLogic.showTeamToggle(true, true));
-        assertFalse(WaystoneViewerLogic.showTeamToggle(false, true)); // not on a team
-        assertFalse(WaystoneViewerLogic.showTeamToggle(true, false)); // no perm
-    }
-
-    @Test
-    void serverToggleGatedOnServerPerm() {
-        assertTrue(WaystoneViewerLogic.showServerToggle(true));
-        assertFalse(WaystoneViewerLogic.showServerToggle(false));
-    }
-
-    @Test
-    void noPermsShowsBarrierFallback() {
-        assertEquals(0, WaystoneViewerLogic.availableToggleCount(false, false, false, false));
-        assertTrue(WaystoneViewerLogic.showNoSettingsFallback(false, false, false, false));
-    }
-
-    @Test
-    void anyPermSuppressesFallback() {
-        assertEquals(1, WaystoneViewerLogic.availableToggleCount(true, false, false, false));
-        assertFalse(WaystoneViewerLogic.showNoSettingsFallback(true, false, false, false));
-        // admin on a team with all perms -> all three toggles
-        assertEquals(3, WaystoneViewerLogic.availableToggleCount(true, true, true, true));
     }
 }

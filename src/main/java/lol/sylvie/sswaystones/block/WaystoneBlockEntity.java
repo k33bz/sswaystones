@@ -51,10 +51,8 @@ public class WaystoneBlockEntity extends BlockEntity {
     public static void tick(Level world, WaystoneBlockEntity waystoneEntity) {
         WaystoneRecord record = waystoneEntity.getThisWaystone(world);
         boolean waystoneOwned = record != null;
-        // hideName (credit Hellscaped, upstream PR #51): when the access setting is on,
-        // the floating name element is not created at all. The presence of nameDisplay
-        // must track the setting, so recreate the hologram whenever they disagree — this
-        // makes a runtime toggle (from the settings UI) take effect on the next tick.
+        // The name hologram's presence must track the hide-name setting, so rebuild the display
+        // whenever they disagree — a runtime toggle then takes effect on the next tick.
         boolean wantName = record != null && !record.getAccessSettings().isNameHidden();
         boolean haveName = waystoneEntity.nameDisplay != null;
         boolean nameStateChanged = wantName != haveName;
@@ -157,7 +155,6 @@ public class WaystoneBlockEntity extends BlockEntity {
         holder.addElement(eyeDisplay);
 
         // Waystone name display — skipped entirely when the owner has hidden the name
-        // (credit Hellscaped, upstream PR #51).
         if (exists && !record.getAccessSettings().isNameHidden()) {
             nameDisplay = new TextDisplayElement();
 
@@ -178,8 +175,7 @@ public class WaystoneBlockEntity extends BlockEntity {
         }
         if (nameDisplay != null) {
             holder.removeElement(nameDisplay);
-            // Null the field so tick()'s wantName/haveName comparison reflects reality
-            // after a rebuild that intentionally omits the name (hideName on).
+            // Null the field so tick()'s presence check reflects reality after a rebuild.
             nameDisplay = null;
         }
         if (attachment != null) {

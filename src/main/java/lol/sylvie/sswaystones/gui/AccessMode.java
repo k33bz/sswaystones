@@ -8,16 +8,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The single "Access" mode the native dialog presents as ONE cycling selector (Private / Team /
- * Global / Server-owned), collapsing the three underlying {@code AccessSettings} fields
- * ({@code global} + {@code server} booleans, {@code team} string) into one mutually-exclusive
- * choice. This is a PURE presentation/mapping helper — the data model, its Codec, and the frozen
- * sgui menu (which keeps three separate toggles) are unchanged; this only decides which mode the
- * dialog shows and how the chosen mode maps back onto the same setter calls.
- *
- * <p>
- * Kept dependency-free (no Minecraft imports) so the mapping, precedence, and permission-filtering
- * logic are unit-testable without a game runtime.
+ * The single access mode (Private / Team / Global / Server-owned) the dialog and Bedrock settings
+ * UIs present, collapsing the three underlying {@code AccessSettings} fields into one
+ * mutually-exclusive choice. Kept free of Minecraft imports so the mapping and permission logic
+ * are unit-testable without a game runtime.
  */
 public enum AccessMode {
     PRIVATE("private"),
@@ -46,9 +40,9 @@ public enum AccessMode {
     }
 
     /**
-     * Map the waystone's current fields to the highest applicable mode. Precedence
-     * {@code server > global > team > private} — this also normalizes a legacy redundant combo
-     * (e.g. both global and team set) down to the single displayed mode.
+     * Map the waystone's current fields to the highest applicable mode, precedence
+     * {@code server > global > team > private}. A redundant legacy combo (e.g. global and team both
+     * set) normalizes down to the single displayed mode.
      */
     public static AccessMode fromSettings(boolean isServerOwned, boolean isGlobal, boolean hasTeam) {
         if (isServerOwned)
@@ -60,9 +54,7 @@ public enum AccessMode {
         return PRIVATE;
     }
 
-    // --- field targets for a chosen mode (mutually exclusive) ---
-    // The three setters the backend must call for this mode. teamName is used only by TEAM; every
-    // other mode clears the team to "".
+    // Field values to store for this mode; every mode other than TEAM clears the team.
 
     public boolean global() {
         return this == GLOBAL;
@@ -78,14 +70,9 @@ public enum AccessMode {
     }
 
     /**
-     * Which modes to OFFER in the selector, filtered by the player's permissions, but ALWAYS
-     * including the waystone's current mode so re-saving can never silently downgrade a mode the
-     * player can't otherwise set. Order is fixed Private, Team, Global, Server for a stable cycle.
-     *
-     * @param current the waystone's current mode (always included)
-     * @param canTeam player may set team (perm + on a scoreboard team)
-     * @param canGlobal player may set global
-     * @param canServer player may set server-owned (admin)
+     * The modes to offer in the selector, filtered by the player's permissions. The waystone's
+     * current mode is always included so re-saving can never silently downgrade a mode the player
+     * couldn't otherwise set.
      */
     public static List<AccessMode> availableModes(AccessMode current, boolean canTeam, boolean canGlobal,
             boolean canServer) {
@@ -101,9 +88,8 @@ public enum AccessMode {
     }
 
     /**
-     * Whether a player may APPLY this mode, given their permissions. The backend uses this as the
-     * server-side gate so a hand-crafted {@code access:server} can't escalate. PRIVATE is always
-     * allowed; TEAM/GLOBAL/SERVER require the matching permission.
+     * Whether a player may apply this mode. The backend uses this as the server-side gate so a
+     * hand-crafted {@code access:server} can't escalate; PRIVATE is always allowed.
      */
     public boolean isAllowed(boolean canTeam, boolean canGlobal, boolean canServer) {
         return switch (this) {

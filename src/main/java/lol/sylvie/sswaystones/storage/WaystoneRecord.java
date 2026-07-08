@@ -273,13 +273,9 @@ public final class WaystoneRecord {
         private boolean global; // Blanket flag, allows all players to access
         private boolean server; // Hides the actual owner and makes it unbreakable
         private String team; // Scoreboard team
-        // When true, the waystone's floating name hologram is not rendered. Bedrock
-        // players can see the name text through walls, so hiding it is sometimes
-        // desirable. Feature idea credit: Hellscaped (upstream sswaystones PR #51).
-        private boolean hideName;
+        private boolean hideName; // Hides the floating name hologram (readable through walls on Bedrock)
 
-        // hide_name is an OPTIONAL field defaulting to false so existing saves (which
-        // have no hide_name key) deserialize unchanged — non-breaking.
+        // hide_name is optional so existing saves (which have no such key) deserialize unchanged.
         public static final Codec<AccessSettings> CODEC = RecordCodecBuilder.create(instance -> instance
                 .group(Codec.BOOL.fieldOf("global").forGetter(AccessSettings::isGlobal),
                         Codec.BOOL.fieldOf("server").forGetter(AccessSettings::isServerOwned),

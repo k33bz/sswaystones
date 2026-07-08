@@ -7,6 +7,7 @@ package lol.sylvie.sswaystones.gui;
 import eu.pb4.sgui.api.ClickType;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
 import eu.pb4.sgui.api.gui.*;
+import java.util.ArrayList;
 import java.util.List;
 import lol.sylvie.sswaystones.Waystones;
 import lol.sylvie.sswaystones.storage.PlayerData;
@@ -68,7 +69,7 @@ public class JavaViewerGui extends SimpleGui {
             GuiElementBuilder element = new GuiElementBuilder(record.getIconOrHead(player.level().getServer()))
                     .setName(record.getWaystoneText().copy().withStyle(ChatFormatting.YELLOW));
 
-            List<Component> lore = new java.util.ArrayList<>();
+            List<Component> lore = new ArrayList<>();
             if (!record.getAccessSettings().isServerOwned())
                 lore.add(Component.nullToEmpty(record.getOwnerName()));
             else
@@ -100,8 +101,6 @@ public class JavaViewerGui extends SimpleGui {
             this.setSlot(i, new GuiElementBuilder(Items.STAINED_GLASS_PANE.gray()).setName(Component.empty()));
         }
 
-        // Gui controls — only show the page arrows when there's actually more than one
-        // page, so a single-page list isn't cluttered with dead "Page 1 of 1" controls.
         if (WaystoneViewerLogic.showPageArrows(maxPages)) {
             List<Component> pageLore = List
                     .of(Component.translatable("gui.sswaystones.page_indicator", pageIndex + 1, maxPages)
@@ -138,9 +137,8 @@ public class JavaViewerGui extends SimpleGui {
                     .setName(Component.translatable("gui.sswaystones.change_icon").withStyle(ChatFormatting.YELLOW))
                     .glow().setCallback((index, type, action, gui) -> new IconGui(waystone, player).open()));
 
-            // When the native-Dialog settings UI is selected, name-editing is FOLDED INTO the
-            // dialog (matching Bedrock), so the separate anvil NameGui is bypassed — the name-tag
-            // button opens the same dialog. When the flag is "sgui" (default) behavior is unchanged.
+            // In dialog mode the name and access buttons both open the combined settings dialog;
+            // sgui mode keeps the separate anvil and chest menus.
             boolean dialogMode = Waystones.configuration.settingsUi().isDialog();
 
             this.setSlot(52, new GuiElementBuilder(Items.NAME_TAG)
@@ -261,10 +259,8 @@ public class JavaViewerGui extends SimpleGui {
         }
 
         private void updateMenu() {
-            // NOTE: this sgui menu deliberately keeps its OWN independent 3-toggle access logic (a
-            // documented known divergence). AccessMode is the single source of truth for the native
-            // dialog (SettingsDialog) and the Bedrock dropdown (BedrockViewerGui) — this frozen menu
-            // is intentionally not refactored onto it. The only addition here is the Hide Name toggle.
+            // This menu intentionally keeps its own three-toggle access logic; the dialog and
+            // Bedrock form share AccessMode instead.
 
             // Framing
             for (int i = 0; i < (9 * 3); i++) {
@@ -327,11 +323,8 @@ public class JavaViewerGui extends SimpleGui {
                 slot += 1;
             }
 
-            // Hide Name (credit Hellscaped, upstream PR #51) — pinned to the right end of the row so
-            // the DEFAULT sgui UI also exposes hideName (previously dialog + Bedrock only). Always
-            // available to anyone who can edit the waystone. Green when the toggle is ACTIVE (name
-            // hidden) / red when inactive, matching the other sgui toggles' "green = on" convention
-            // and the dialog's On=green Hide Name entry. Uses the existing getter/setter — no data change.
+            // Hide Name is available to anyone who can edit the waystone; green = hidden, matching
+            // the other toggles' "green = on" convention.
             GuiElementBuilder hideNameToggle = new GuiElementBuilder(Items.NAME_TAG)
                     .setName(Component.translatable("gui.sswaystones.toggle_hide_name")
                             .withStyle(accessSettings.isNameHidden() ? ChatFormatting.GREEN : ChatFormatting.RED));
@@ -341,8 +334,8 @@ public class JavaViewerGui extends SimpleGui {
             });
             this.setSlot(16, hideNameToggle);
 
-            // If no ACCESS settings were available (the Hide Name toggle above is always present, so
-            // the counter still reflects only the three permission-gated access toggles).
+            // Barrier fallback when none of the permission-gated access toggles were available
+            // (Hide Name is always present and doesn't count).
             if (slot == 10) {
                 this.setSlot(13,
                         new GuiElementBuilder(Items.BARRIER)

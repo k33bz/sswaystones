@@ -120,10 +120,7 @@ public class BedrockViewerGui {
         WaystoneRecord.AccessSettings accessSettings = waystone.getAccessSettings();
         builder.input("Waystone Name", NameGenerator.generateName(), waystone.getWaystoneName());
 
-        // ACCESS-UI SOURCE OF TRUTH: like the Java dialog (SettingsDialog), the Bedrock form presents
-        // access as ONE dropdown routed through AccessMode — the single source of truth for the
-        // options, the current-mode mapping, and the mode->fields apply. (The sgui AccessSettingsGui
-        // keeps its own independent 3-toggle logic — a documented known divergence.)
+        // Access is one dropdown routed through AccessMode, same as the Java settings dialog.
         boolean globalAvailable = Permissions.check(player, "sswaystones.create.global", true);
         boolean teamAvailable = player.getTeam() != null && Permissions.check(player, "sswaystones.create.team", true);
         boolean serverAvailable = Permissions.check(player, "sswaystones.create.server", 4);
@@ -137,9 +134,7 @@ public class BedrockViewerGui {
         int defaultIndex = Math.max(modes.indexOf(currentMode), 0);
         builder.dropdown("Access", modeLabels, defaultIndex);
 
-        // Hide Name toggle (credit Hellscaped, upstream PR #51): offered to anyone who can edit the
-        // waystone — Bedrock players can read the floating name through walls, so hiding it matters
-        // most for them. Always present, LAST component.
+        // Hide Name matters most on Bedrock, where the floating name is readable through walls.
         builder.toggle("Hide Name", accessSettings.isNameHidden());
 
         builder.validResultHandler(response -> {
@@ -151,8 +146,8 @@ public class BedrockViewerGui {
             int selected = response.asDropdown(1);
             if (selected >= 0 && selected < modes.size()) {
                 AccessMode mode = modes.get(selected);
-                // Re-check the SAME permissions server-side (PRIVATE always allowed) — the current mode
-                // is always offered but a player still can't APPLY a mode they lack permission for.
+                // The current mode is always offered, but applying any mode still requires the
+                // matching permission.
                 boolean canServer = Permissions.check(player, "sswaystones.create.server", 4);
                 if (mode.isAllowed(teamAvailable, globalAvailable, canServer)) {
                     accessSettings.setGlobal(mode.global());
@@ -170,7 +165,7 @@ public class BedrockViewerGui {
         return builder.build();
     }
 
-    // Human-readable dropdown label for an access mode (Bedrock side; the Java dialog uses lang keys).
+    // Bedrock forms take plain strings; the Java dialog uses lang keys for the same labels.
     private static String bedrockModeLabel(AccessMode mode) {
         return switch (mode) {
             case PRIVATE -> "Private";

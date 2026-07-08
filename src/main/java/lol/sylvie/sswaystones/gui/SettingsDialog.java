@@ -27,19 +27,15 @@ import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.scores.PlayerTeam;
 
 /**
- * The native 26.x server-Dialog settings screen for the JAVA path (the "dialog" alternative to the
- * frozen sgui {@code AccessSettingsGui}, selected by the {@code settings_ui} config flag). It folds
- * name-editing and the permission-gated access toggles into ONE submit form, exactly mirroring the
- * Bedrock cumulus {@code CustomForm} in {@link lol.sylvie.sswaystones.gui.compat.BedrockViewerGui}:
- * a name text input plus Global / Team / Server-Owned toggles, plus the Hide Name toggle (credit
- * Hellscaped, upstream PR #51).
+ * Native server-dialog settings screen for Java players — the "dialog" option of the
+ * {@code settings_ui} config flag. Folds name editing, the access selector, and the hide-name
+ * toggle into one submit form, mirroring the Bedrock form in
+ * {@link lol.sylvie.sswaystones.gui.compat.BedrockViewerGui}.
  *
  * <p>
- * Native dialogs cannot carry arbitrary Java callbacks the way sgui does; instead each input is
- * bound to a {@code $(key)} placeholder and the "Done" button submits them to the permission-0
- * {@code /waystonesettings apply ...} backend command (see {@code WaystonesCommand}). The backend
- * re-checks the SAME permissions server-side before applying each field, so a hand-crafted command
- * can't escalate access. Which toggles are OFFERED here still follows the player's permissions.
+ * Dialogs cannot carry server-side callbacks, so each input is bound to a {@code $(key)}
+ * placeholder and Done submits them through {@code /waystonesettings apply}, which re-checks the
+ * player's permissions before applying each field.
  */
 public final class SettingsDialog {
     private SettingsDialog() {
@@ -53,16 +49,10 @@ public final class SettingsDialog {
         boolean teamAvailable = team != null && Permissions.check(player, "sswaystones.create.team", true);
         boolean serverAvailable = Permissions.check(player, "sswaystones.create.server", PermissionLevel.ADMINS);
 
-        // LAYOUT sizing. The vanilla dialog stacks each input + body element on its own row; at
-        // default GUI scale the whole form was overflowing vertically, which clipped the Done button
-        // behind Cancel. So: a single short body line (one row instead of a wrapped block), narrower
-        // inputs, and Done + Cancel placed SIDE-BY-SIDE in a 2-column action row (below) instead of
-        // stacking. Presentation only — no reachable state or behavior changes.
+        // The dialog stacks every element vertically and overflows at default GUI scale, so keep it
+        // short: narrow inputs, one helper line, and Done/Cancel sharing a row.
         final int inputWidth = 140;
 
-        // One muted helper line explaining the three non-obvious access modes (rename is
-        // self-evident; Hide Name is self-explanatory — both omitted). The footer buttons are fixed
-        // and the body scrolls, so a wrapping line is fine.
         List<DialogBody> body = new ArrayList<>();
         body.add(new PlainMessage(
                 Component.translatable("gui.sswaystones.dialog_access_help").withStyle(ChatFormatting.GRAY),
@@ -72,16 +62,8 @@ public final class SettingsDialog {
         inputs.add(DialogInputs.text("name", componentString("gui.sswaystones.change_name"),
                 waystone.getWaystoneName(), 32, inputWidth));
 
-        // ONE cycling "Access" selector collapses the three underlying booleans/team into a single
-        // mutually-exclusive choice. Options are filtered by the player's permissions, but the
-        // waystone's CURRENT mode is always included so re-saving never silently downgrades it. The
-        // colored displays give openness feedback (Private=gray .. Server=gold). This is UI only —
-        // the AccessSettings fields and the sgui menu's three toggles are unchanged.
-        //
-        // ACCESS-UI SOURCE OF TRUTH: AccessMode is the single source of truth for the access mapping,
-        // shared by this dialog AND the Bedrock dropdown (BedrockViewerGui.getSettingsForm). The sgui
-        // AccessSettingsGui (JavaViewerGui) deliberately keeps its own independent 3-toggle logic — a
-        // documented known divergence, not refactored, so the frozen menu's behavior is untouched.
+        // One access selector instead of three toggles. Options are permission-filtered, but the
+        // waystone's current mode is always offered so re-saving never silently downgrades it.
         AccessMode currentMode = AccessMode.fromSettings(access.isServerOwned(), access.isGlobal(), access.hasTeam());
         List<AccessMode> modes = AccessMode.availableModes(currentMode, teamAvailable, globalAvailable, serverAvailable);
         List<SingleOptionInput.Entry> accessEntries = new ArrayList<>();
@@ -90,22 +72,16 @@ public final class SettingsDialog {
         inputs.add(DialogInputs.singleOption("access", componentString("gui.sswaystones.dialog_access_label"),
                 inputWidth, accessEntries));
 
-        // Hide Name stays its own On/Off toggle (green/red), unchanged.
         inputs.add(DialogInputs.bool("hidename", componentString("gui.sswaystones.toggle_hide_name"),
                 access.isNameHidden(), inputWidth));
 
-        // Submit carries the single access mode + hidename. The backend (WaystonesCommand.applySettings,
-        // via ApplyArgs) maps access:<mode> through AccessMode — the single source of truth — back to
-        // the same setGlobal/setServerOwned/setTeam calls, re-checking the same permissions. name: is
-        // LAST because ApplyArgs consumes it greedily to end-of-string (so a name with a colon, e.g.
-        // "Base: north", isn't truncated).
+        // name: goes last — ApplyArgs parses it greedily to end-of-string, so a name may contain
+        // spaces and colons (e.g. "Base: north").
         String template = "waystonesettings apply " + waystone.getHash()
                 + " access:$(access) hidename:$(hidename) name:$(name)";
 
-        // Done + Cancel share ONE row (columns = 2). Both live in the actions list; there is no
-        // separate exitAction so they don't stack/overlap. Done carries a demo hover tooltip (only
-        // action buttons support tooltips in this API — inputs/options do not). Cancel has an empty
-        // action, so with DialogAction.CLOSE it simply closes the dialog.
+        // Done and Cancel live in one two-column action row; Cancel has no action, so with
+        // DialogAction.CLOSE it simply closes the dialog.
         final int buttonWidth = 100;
         List<ActionButton> buttons = new ArrayList<>();
         buttons.add(new ActionButton(
@@ -128,13 +104,12 @@ public final class SettingsDialog {
         player.openDialog(Holder.direct(dialog));
     }
 
-    // Dialog INPUT labels take a plain Component; using the translation key's fallback string keeps
-    // the label human-readable server-side without needing a resolved client locale.
+    // Dialog input labels take a plain string; the translation key's fallback keeps it readable
+    // server-side without a resolved client locale.
     private static String componentString(String translationKey) {
         return Component.translatable(translationKey).getString();
     }
 
-    // Human-readable label for an access mode (the selector entry display text).
     private static String modeLabel(AccessMode mode) {
         return switch (mode) {
             case PRIVATE -> componentString("gui.sswaystones.access_private");
@@ -144,7 +119,7 @@ public final class SettingsDialog {
         };
     }
 
-    // Color the option display by openness, for at-a-glance feedback.
+    // Colored by openness: gray (private) through gold (server-owned).
     private static ChatFormatting modeColor(AccessMode mode) {
         return switch (mode) {
             case PRIVATE -> ChatFormatting.GRAY;

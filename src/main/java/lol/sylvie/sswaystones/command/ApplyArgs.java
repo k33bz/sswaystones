@@ -8,22 +8,16 @@ import java.util.Optional;
 import lol.sylvie.sswaystones.gui.AccessMode;
 
 /**
- * Dependency-free, unit-testable parse of the {@code /waystonesettings apply} argument tail. Pulling
- * the string handling out of the Brigadier handler lets the tricky cases (a name containing a colon,
- * the {@code "-"} leave-unchanged sentinel, {@code access:} vs the legacy per-field tokens) be tested
- * without a game runtime.
+ * Parsed argument tail of {@code /waystonesettings apply}. Kept free of Minecraft/Brigadier
+ * imports so the tricky cases (a name containing a colon, the {@code "-"} leave-unchanged
+ * sentinel, {@code access:} vs the legacy per-field tokens) are unit-testable.
  *
  * <p>
  * Grammar (one greedy string): {@code <hash> [key:value ...] [name:<free text to end>]}. The
- * short-value keys are {@code access}, {@code global}, {@code team}, {@code server}, {@code hidename}.
- * {@code name} is special: its value may contain spaces and colons, so it is ALWAYS parsed LAST and
- * consumes the rest of the string — this fixes a name like {@code "Base: north"} being truncated at
- * the next {@code word:} boundary. Callers therefore emit {@code name:} last in the template.
- *
- * <p>
- * PRECEDENCE: if {@code access:} is present it is authoritative — the legacy per-field
- * {@code global:/team:/server:} tokens are IGNORED (rather than applied-then-overridden), so the two
- * forms never fight.
+ * short-value keys are {@code access}, {@code global}, {@code team}, {@code server},
+ * {@code hidename}. {@code name} may contain spaces and colons, so it always comes last and
+ * consumes the rest of the string. When {@code access:} is present it is authoritative and the
+ * legacy per-field {@code global:/team:/server:} tokens are ignored, so the two forms never fight.
  */
 public final class ApplyArgs {
     // A value that is present but should be left unchanged.
@@ -64,8 +58,7 @@ public final class ApplyArgs {
             rest = s.substring(sp + 1).trim();
         }
 
-        // name: is greedy-to-end. Split it off FIRST so its free text (spaces/colons) can't be
-        // mis-parsed as other keys, and so other keys after it aren't swallowed by mistake.
+        // Split name: off first so its free text (spaces/colons) can't be mis-parsed as other keys.
         Optional<String> name = Optional.empty();
         int nameIdx = indexOfKey(rest, "name");
         if (nameIdx >= 0) {
