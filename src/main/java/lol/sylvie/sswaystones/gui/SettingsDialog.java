@@ -4,6 +4,8 @@
 */
 package lol.sylvie.sswaystones.gui;
 
+import com.google.gson.JsonPrimitive;
+import com.mojang.serialization.JsonOps;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -19,9 +21,13 @@ import net.minecraft.server.dialog.Dialog;
 import net.minecraft.server.dialog.DialogAction;
 import net.minecraft.server.dialog.Input;
 import net.minecraft.server.dialog.MultiActionDialog;
+import net.minecraft.server.dialog.action.Action;
+import net.minecraft.server.dialog.action.CommandTemplate;
+import net.minecraft.server.dialog.action.ParsedTemplate;
 import net.minecraft.server.dialog.body.DialogBody;
 import net.minecraft.server.dialog.body.PlainMessage;
 import net.minecraft.server.dialog.input.SingleOptionInput;
+import net.minecraft.server.dialog.input.TextInput;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.scores.PlayerTeam;
@@ -39,6 +45,9 @@ import net.minecraft.world.scores.PlayerTeam;
  * before applying each field.
  */
 public final class SettingsDialog {
+    private static final int INPUT_WIDTH = 140;
+    private static final int BUTTON_WIDTH = 100;
+
     private SettingsDialog() {
     }
 
@@ -50,59 +59,38 @@ public final class SettingsDialog {
         boolean teamAvailable = team != null && Permissions.check(player, "sswaystones.create.team", true);
         boolean serverAvailable = Permissions.check(player, "sswaystones.create.server", PermissionLevel.ADMINS);
 
-        // The dialog stacks every element vertically and overflows at default GUI
-        // scale, so keep it short: narrow inputs, one helper line, and Done/Cancel
-        // sharing a row.
-        final int inputWidth = 140;
-
-        List<DialogBody> body = new ArrayList<>();
-        body.add(new PlainMessage(
+        List<DialogBody> body = List.of(new PlainMessage(
                 Component.translatable("gui.sswaystones.dialog_access_help").withStyle(ChatFormatting.GRAY), 200));
 
-        List<Input> inputs = new ArrayList<>();
-        inputs.add(DialogInputs.text("name", componentString("gui.sswaystones.change_name"), waystone.getWaystoneName(),
-                32, inputWidth));
-
-        // One access selector instead of three toggles. Options are filtered by
-        // permission, but the waystone's current mode is always offered so re-saving
-        // never silently downgrades it.
+        // Options are filtered by permission, but the waystone's current mode is
+        // always offered so re-saving never silently downgrades it.
         AccessMode currentMode = AccessMode.fromSettings(access.isServerOwned(), access.isGlobal(), access.hasTeam());
-        List<AccessMode> modes = AccessMode.availableModes(currentMode, teamAvailable, globalAvailable,
-                serverAvailable);
         List<SingleOptionInput.Entry> accessEntries = new ArrayList<>();
-        for (AccessMode m : modes)
-            accessEntries.add(DialogInputs.entry(m.id(), modeLabel(m), modeColor(m), m == currentMode));
-        inputs.add(DialogInputs.singleOption("access", componentString("gui.sswaystones.dialog_access_label"),
-                inputWidth, accessEntries));
+        for (AccessMode mode : AccessMode.availableModes(currentMode, teamAvailable, globalAvailable, serverAvailable))
+            accessEntries.add(entry(mode.id(), modeLabel(mode), modeColor(mode), mode == currentMode));
 
-        inputs.add(DialogInputs.bool("hidename", componentString("gui.sswaystones.toggle_hide_name"),
-                access.isNameHidden(), inputWidth));
+        List<Input> inputs = new ArrayList<>();
+        inputs.add(text("name", componentString("gui.sswaystones.change_name"), waystone.getWaystoneName(), 32));
+        inputs.add(singleOption("access", componentString("gui.sswaystones.dialog_access_label"), accessEntries));
+        inputs.add(bool("hidename", componentString("gui.sswaystones.toggle_hide_name"), access.isNameHidden()));
 
         // name: goes last — ApplyArgs parses it greedily to end-of-string, so a
         // name may contain spaces and colons (e.g. "Base: north").
         String template = "waystonesettings apply " + waystone.getHash()
                 + " access:$(access) hidename:$(hidename) name:$(name)";
 
-        // Done and Cancel live in one two-column action row; Cancel has no action,
-        // so with DialogAction.CLOSE it simply closes the dialog.
-        final int buttonWidth = 100;
-        List<ActionButton> buttons = new ArrayList<>();
-        buttons.add(new ActionButton(
-                new CommonButtonData(Component.translatable("gui.sswaystones.dialog_done"),
-                        Optional.of(Component.translatable("gui.sswaystones.dialog_done_tooltip")), buttonWidth),
-                DialogInputs.command(template)));
-        buttons.add(new ActionButton(
-                new CommonButtonData(Component.translatable("gui.sswaystones.dialog_cancel"), buttonWidth),
-                Optional.empty()));
+        List<ActionButton> buttons = List.of(
+                new ActionButton(new CommonButtonData(Component.translatable("gui.sswaystones.dialog_done"),
+                        Optional.of(Component.translatable("gui.sswaystones.dialog_done_tooltip")), BUTTON_WIDTH),
+                        command(template)),
+                new ActionButton(
+                        new CommonButtonData(Component.translatable("gui.sswaystones.dialog_cancel"), BUTTON_WIDTH),
+                        Optional.empty()));
 
         CommonDialogData common = new CommonDialogData(Component.translatable("gui.sswaystones.access_settings"),
-                Optional.empty(), true, // closable with escape
-                false, // never pause the server
-                DialogAction.CLOSE, // buttons close; the backend reopens the viewer
-                body, inputs);
+                Optional.empty(), true, false, DialogAction.CLOSE, body, inputs);
 
         Dialog dialog = new MultiActionDialog(common, buttons, Optional.empty(), 2);
-
         player.openDialog(Holder.direct(dialog));
     }
 
@@ -121,7 +109,6 @@ public final class SettingsDialog {
         };
     }
 
-    // Colored by openness: gray (private) through gold (server-owned).
     private static ChatFormatting modeColor(AccessMode mode) {
         return switch (mode) {
             case PRIVATE -> ChatFormatting.GRAY;
@@ -129,5 +116,34 @@ public final class SettingsDialog {
             case GLOBAL -> ChatFormatting.GREEN;
             case SERVER -> ChatFormatting.GOLD;
         };
+    }
+
+    private static Input text(String key, String label, String initial, int maxLength) {
+        return new Input(key, new TextInput(INPUT_WIDTH, Component.literal(label), true, initial == null ? "" : initial,
+                maxLength, Optional.empty()));
+    }
+
+    // The dialog API has no checkbox, so booleans are an On/Off single-option
+    // picker whose selected id ("true"/"false") is substituted into the command.
+    private static Input bool(String key, String label, boolean initial) {
+        List<SingleOptionInput.Entry> entries = List.of(entry("true", "On", ChatFormatting.GREEN, initial),
+                entry("false", "Off", ChatFormatting.RED, !initial));
+        return singleOption(key, label, entries);
+    }
+
+    private static SingleOptionInput.Entry entry(String id, String display, ChatFormatting color, boolean initial) {
+        return new SingleOptionInput.Entry(id, Optional.of(Component.literal(display).withStyle(color)), initial);
+    }
+
+    private static Input singleOption(String key, String label, List<SingleOptionInput.Entry> entries) {
+        return new Input(key, new SingleOptionInput(INPUT_WIDTH, entries, Component.literal(label), true));
+    }
+
+    // ParsedTemplate has no public constructor, so decode through its string
+    // codec — the same path the vanilla dialog loader uses.
+    private static Optional<Action> command(String template) {
+        ParsedTemplate parsed = ParsedTemplate.CODEC.parse(JsonOps.INSTANCE, new JsonPrimitive(template))
+                .getOrThrow(msg -> new IllegalArgumentException("bad dialog command template: " + msg));
+        return Optional.of(new CommandTemplate(parsed));
     }
 }

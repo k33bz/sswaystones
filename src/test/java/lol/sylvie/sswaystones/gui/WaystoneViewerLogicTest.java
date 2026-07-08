@@ -11,8 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 /**
- * Pure-logic guards for the viewer GUI: page math, arrow visibility, and
- * forget-eligibility.
+ * Pure-logic guards for the viewer GUI: page math and forget-eligibility.
  */
 class WaystoneViewerLogicTest {
 
@@ -37,19 +36,6 @@ class WaystoneViewerLogicTest {
     void ceilDivRoundsUp() {
         assertEquals(3, WaystoneViewerLogic.maxPages(91)); // ceil(91/45) = 3
         assertEquals(2, WaystoneViewerLogic.maxPages(90)); // exactly 2
-    }
-
-    // --- arrow visibility: ONLY when maxPages > 1 ---
-
-    @Test
-    void arrowsHiddenOnSinglePage() {
-        assertFalse(WaystoneViewerLogic.showPageArrows(1));
-    }
-
-    @Test
-    void arrowsShownWithMultiplePages() {
-        assertTrue(WaystoneViewerLogic.showPageArrows(2));
-        assertTrue(WaystoneViewerLogic.showPageArrows(9));
     }
 
     // --- page wrap-around ---

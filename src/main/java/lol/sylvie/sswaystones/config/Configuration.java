@@ -100,31 +100,20 @@ public class Configuration {
         @Description(translation = "config.sswaystones.village_structures")
         public boolean injectVillageStructures = true;
 
-        // Which UI the Java "Access Settings" button opens: "sgui" (default chest
-        // menu) or "dialog" (native server dialog). Unrecognized values fall back
-        // to "sgui".
         @SerializedName("settings_ui")
         @Description(translation = "config.sswaystones.settings_ui")
         public String settingsUi = "sgui";
     }
 
-    /** Parsed value of the {@code settings_ui} option. */
-    public enum SettingsUi {
-        SGUI, DIALOG;
-
-        /** Anything other than a case-insensitive "dialog" is the safe SGUI default. */
-        public static SettingsUi fromConfig(String value) {
-            if (value != null && value.trim().equalsIgnoreCase("dialog"))
-                return DIALOG;
-            return SGUI;
-        }
-
-        public boolean isDialog() {
-            return this == DIALOG;
-        }
+    /**
+     * True only for an explicit "dialog"; anything else falls back to the sgui
+     * menus.
+     */
+    public static boolean isDialogUi(String value) {
+        return value != null && value.trim().equalsIgnoreCase("dialog");
     }
 
-    public SettingsUi settingsUi() {
-        return SettingsUi.fromConfig(instance.settingsUi);
+    public boolean useDialogUi() {
+        return isDialogUi(instance.settingsUi);
     }
 }

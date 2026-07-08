@@ -101,19 +101,15 @@ public class JavaViewerGui extends SimpleGui {
             this.setSlot(i, new GuiElementBuilder(Items.STAINED_GLASS_PANE.gray()).setName(Component.empty()));
         }
 
-        if (WaystoneViewerLogic.showPageArrows(maxPages)) {
-            List<Component> pageLore = List
-                    .of(Component.translatable("gui.sswaystones.page_indicator", pageIndex + 1, maxPages)
-                            .withStyle(ChatFormatting.GRAY));
-
+        if (maxPages > 1) {
             this.setSlot(45,
-                    new GuiElementBuilder(Items.PLAYER_HEAD).setProfileSkinTexture(IconConstants.WHITE_ARROW_LEFT)
-                            .setName(Component.translatable("gui.sswaystones.page_previous")).setLore(pageLore)
+                    new GuiElementBuilder(Items.PLAYER_HEAD).setProfileSkinTexture(IconConstants.ARROW_LEFT)
+                            .setName(Component.translatable("gui.sswaystones.page_previous"))
                             .setCallback((index, type, action, gui) -> previousPage()));
 
             this.setSlot(47,
-                    new GuiElementBuilder(Items.PLAYER_HEAD).setProfileSkinTexture(IconConstants.WHITE_ARROW_RIGHT)
-                            .setName(Component.translatable("gui.sswaystones.page_next")).setLore(pageLore)
+                    new GuiElementBuilder(Items.PLAYER_HEAD).setProfileSkinTexture(IconConstants.ARROW_RIGHT)
+                            .setName(Component.translatable("gui.sswaystones.page_next"))
                             .setCallback((index, type, action, gui) -> nextPage()));
         }
 
@@ -137,9 +133,7 @@ public class JavaViewerGui extends SimpleGui {
                     .setName(Component.translatable("gui.sswaystones.change_icon").withStyle(ChatFormatting.YELLOW))
                     .glow().setCallback((index, type, action, gui) -> new IconGui(waystone, player).open()));
 
-            // In dialog mode the name and access buttons both open the combined
-            // settings dialog; sgui mode keeps the separate anvil and chest menus.
-            boolean dialogMode = Waystones.configuration.settingsUi().isDialog();
+            boolean dialogMode = Waystones.configuration.useDialogUi();
 
             this.setSlot(52,
                     new GuiElementBuilder(Items.NAME_TAG).setName(
@@ -259,9 +253,6 @@ public class JavaViewerGui extends SimpleGui {
         }
 
         private void updateMenu() {
-            // This menu intentionally keeps its own three-toggle access logic; the
-            // dialog and Bedrock form share AccessMode instead.
-
             // Framing
             for (int i = 0; i < (9 * 3); i++) {
                 this.setSlot(i, new GuiElementBuilder(Items.STAINED_GLASS_PANE.gray()).setName(Component
@@ -323,8 +314,7 @@ public class JavaViewerGui extends SimpleGui {
                 slot += 1;
             }
 
-            // Hide Name is available to anyone who can edit the waystone; green =
-            // hidden, matching the other toggles' "green = on" convention.
+            // Hide Name
             GuiElementBuilder hideNameToggle = new GuiElementBuilder(Items.NAME_TAG)
                     .setName(Component.translatable("gui.sswaystones.toggle_hide_name")
                             .withStyle(accessSettings.isNameHidden() ? ChatFormatting.GREEN : ChatFormatting.RED));
@@ -334,8 +324,7 @@ public class JavaViewerGui extends SimpleGui {
             });
             this.setSlot(16, hideNameToggle);
 
-            // Barrier fallback when none of the permission-gated access toggles were
-            // available (Hide Name is always present and doesn't count).
+            // No access toggles available
             if (slot == 10) {
                 this.setSlot(13,
                         new GuiElementBuilder(Items.BARRIER)

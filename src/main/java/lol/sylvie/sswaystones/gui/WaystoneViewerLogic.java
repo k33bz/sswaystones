@@ -14,23 +14,9 @@ public final class WaystoneViewerLogic {
     private WaystoneViewerLogic() {
     }
 
-    /**
-     * Number of pages for {@code count} entries, at least 1 (an empty list still
-     * shows page 1).
-     */
+    /** Number of pages for {@code count} entries, at least 1. */
     public static int maxPages(int count) {
-        return maxPages(count, ITEMS_PER_PAGE);
-    }
-
-    public static int maxPages(int count, int itemsPerPage) {
-        if (itemsPerPage <= 0)
-            throw new IllegalArgumentException("itemsPerPage must be > 0");
-        return Math.max(Math.ceilDiv(Math.max(count, 0), itemsPerPage), 1);
-    }
-
-    /** Page arrows are only rendered when there is more than one page. */
-    public static boolean showPageArrows(int maxPages) {
-        return maxPages > 1;
+        return Math.max(Math.ceilDiv(Math.max(count, 0), ITEMS_PER_PAGE), 1);
     }
 
     /** Wrap-around previous-page index. */
