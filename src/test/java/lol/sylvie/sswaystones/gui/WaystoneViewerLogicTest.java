@@ -11,7 +11,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 /**
- * Pure-logic guards for the viewer GUI: page math, arrow visibility, and forget-eligibility.
+ * Pure-logic guards for the viewer GUI: page math, arrow visibility, and
+ * forget-eligibility.
  */
 class WaystoneViewerLogicTest {
 
@@ -91,7 +92,8 @@ class WaystoneViewerLogicTest {
 
     @Test
     void forgetLoreIsShownEvenWhenStorageIsNotConsulted() {
-        // the lore hint intentionally ignores the storage-tracked bit (too costly per lore line)
+        // the lore hint intentionally ignores the storage-tracked bit (too costly per
+        // lore line)
         assertTrue(WaystoneViewerLogic.showForgetLore(false, false));
         assertFalse(WaystoneViewerLogic.showForgetLore(true, false));
         assertFalse(WaystoneViewerLogic.showForgetLore(false, true));

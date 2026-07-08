@@ -51,8 +51,9 @@ public class WaystoneBlockEntity extends BlockEntity {
     public static void tick(Level world, WaystoneBlockEntity waystoneEntity) {
         WaystoneRecord record = waystoneEntity.getThisWaystone(world);
         boolean waystoneOwned = record != null;
-        // The name hologram's presence must track the hide-name setting, so rebuild the display
-        // whenever they disagree — a runtime toggle then takes effect on the next tick.
+        // The name hologram's presence must track the hide-name setting, so rebuild
+        // the display whenever they disagree — a runtime toggle then takes effect on
+        // the next tick.
         boolean wantName = record != null && !record.getAccessSettings().isNameHidden();
         boolean haveName = waystoneEntity.nameDisplay != null;
         boolean nameStateChanged = wantName != haveName;

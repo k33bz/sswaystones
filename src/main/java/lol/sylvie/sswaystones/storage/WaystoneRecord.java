@@ -275,7 +275,8 @@ public final class WaystoneRecord {
         private String team; // Scoreboard team
         private boolean hideName; // Hides the floating name hologram (readable through walls on Bedrock)
 
-        // hide_name is optional so existing saves (which have no such key) deserialize unchanged.
+        // hide_name is optional so existing saves, which have no such key,
+        // deserialize unchanged.
         public static final Codec<AccessSettings> CODEC = RecordCodecBuilder.create(instance -> instance
                 .group(Codec.BOOL.fieldOf("global").forGetter(AccessSettings::isGlobal),
                         Codec.BOOL.fieldOf("server").forGetter(AccessSettings::isServerOwned),

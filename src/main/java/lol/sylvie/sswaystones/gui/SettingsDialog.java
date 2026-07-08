@@ -27,15 +27,16 @@ import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.scores.PlayerTeam;
 
 /**
- * Native server-dialog settings screen for Java players — the "dialog" option of the
- * {@code settings_ui} config flag. Folds name editing, the access selector, and the hide-name
- * toggle into one submit form, mirroring the Bedrock form in
- * {@link lol.sylvie.sswaystones.gui.compat.BedrockViewerGui}.
+ * Native server-dialog settings screen for Java players — the "dialog" option
+ * of the {@code settings_ui} config flag. Folds name editing, the access
+ * selector, and the hide-name toggle into one submit form, mirroring the
+ * Bedrock form in {@link lol.sylvie.sswaystones.gui.compat.BedrockViewerGui}.
  *
  * <p>
- * Dialogs cannot carry server-side callbacks, so each input is bound to a {@code $(key)}
- * placeholder and Done submits them through {@code /waystonesettings apply}, which re-checks the
- * player's permissions before applying each field.
+ * Dialogs cannot carry server-side callbacks, so each input is bound to a
+ * {@code $(key)} placeholder and Done submits them through
+ * {@code /waystonesettings apply}, which re-checks the player's permissions
+ * before applying each field.
  */
 public final class SettingsDialog {
     private SettingsDialog() {
@@ -49,23 +50,25 @@ public final class SettingsDialog {
         boolean teamAvailable = team != null && Permissions.check(player, "sswaystones.create.team", true);
         boolean serverAvailable = Permissions.check(player, "sswaystones.create.server", PermissionLevel.ADMINS);
 
-        // The dialog stacks every element vertically and overflows at default GUI scale, so keep it
-        // short: narrow inputs, one helper line, and Done/Cancel sharing a row.
+        // The dialog stacks every element vertically and overflows at default GUI
+        // scale, so keep it short: narrow inputs, one helper line, and Done/Cancel
+        // sharing a row.
         final int inputWidth = 140;
 
         List<DialogBody> body = new ArrayList<>();
         body.add(new PlainMessage(
-                Component.translatable("gui.sswaystones.dialog_access_help").withStyle(ChatFormatting.GRAY),
-                200));
+                Component.translatable("gui.sswaystones.dialog_access_help").withStyle(ChatFormatting.GRAY), 200));
 
         List<Input> inputs = new ArrayList<>();
-        inputs.add(DialogInputs.text("name", componentString("gui.sswaystones.change_name"),
-                waystone.getWaystoneName(), 32, inputWidth));
+        inputs.add(DialogInputs.text("name", componentString("gui.sswaystones.change_name"), waystone.getWaystoneName(),
+                32, inputWidth));
 
-        // One access selector instead of three toggles. Options are permission-filtered, but the
-        // waystone's current mode is always offered so re-saving never silently downgrades it.
+        // One access selector instead of three toggles. Options are filtered by
+        // permission, but the waystone's current mode is always offered so re-saving
+        // never silently downgrades it.
         AccessMode currentMode = AccessMode.fromSettings(access.isServerOwned(), access.isGlobal(), access.hasTeam());
-        List<AccessMode> modes = AccessMode.availableModes(currentMode, teamAvailable, globalAvailable, serverAvailable);
+        List<AccessMode> modes = AccessMode.availableModes(currentMode, teamAvailable, globalAvailable,
+                serverAvailable);
         List<SingleOptionInput.Entry> accessEntries = new ArrayList<>();
         for (AccessMode m : modes)
             accessEntries.add(DialogInputs.entry(m.id(), modeLabel(m), modeColor(m), m == currentMode));
@@ -75,13 +78,13 @@ public final class SettingsDialog {
         inputs.add(DialogInputs.bool("hidename", componentString("gui.sswaystones.toggle_hide_name"),
                 access.isNameHidden(), inputWidth));
 
-        // name: goes last — ApplyArgs parses it greedily to end-of-string, so a name may contain
-        // spaces and colons (e.g. "Base: north").
+        // name: goes last — ApplyArgs parses it greedily to end-of-string, so a
+        // name may contain spaces and colons (e.g. "Base: north").
         String template = "waystonesettings apply " + waystone.getHash()
                 + " access:$(access) hidename:$(hidename) name:$(name)";
 
-        // Done and Cancel live in one two-column action row; Cancel has no action, so with
-        // DialogAction.CLOSE it simply closes the dialog.
+        // Done and Cancel live in one two-column action row; Cancel has no action,
+        // so with DialogAction.CLOSE it simply closes the dialog.
         final int buttonWidth = 100;
         List<ActionButton> buttons = new ArrayList<>();
         buttons.add(new ActionButton(
@@ -92,9 +95,8 @@ public final class SettingsDialog {
                 new CommonButtonData(Component.translatable("gui.sswaystones.dialog_cancel"), buttonWidth),
                 Optional.empty()));
 
-        CommonDialogData common = new CommonDialogData(
-                Component.translatable("gui.sswaystones.access_settings"), Optional.empty(),
-                true, // closable with escape
+        CommonDialogData common = new CommonDialogData(Component.translatable("gui.sswaystones.access_settings"),
+                Optional.empty(), true, // closable with escape
                 false, // never pause the server
                 DialogAction.CLOSE, // buttons close; the backend reopens the viewer
                 body, inputs);
@@ -104,8 +106,8 @@ public final class SettingsDialog {
         player.openDialog(Holder.direct(dialog));
     }
 
-    // Dialog input labels take a plain string; the translation key's fallback keeps it readable
-    // server-side without a resolved client locale.
+    // Dialog input labels take a plain string; the translation key's fallback
+    // keeps it readable server-side without a resolved client locale.
     private static String componentString(String translationKey) {
         return Component.translatable(translationKey).getString();
     }

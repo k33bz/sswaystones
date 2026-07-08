@@ -137,25 +137,25 @@ public class JavaViewerGui extends SimpleGui {
                     .setName(Component.translatable("gui.sswaystones.change_icon").withStyle(ChatFormatting.YELLOW))
                     .glow().setCallback((index, type, action, gui) -> new IconGui(waystone, player).open()));
 
-            // In dialog mode the name and access buttons both open the combined settings dialog;
-            // sgui mode keeps the separate anvil and chest menus.
+            // In dialog mode the name and access buttons both open the combined
+            // settings dialog; sgui mode keeps the separate anvil and chest menus.
             boolean dialogMode = Waystones.configuration.settingsUi().isDialog();
 
-            this.setSlot(52, new GuiElementBuilder(Items.NAME_TAG)
-                    .setName(Component.translatable("gui.sswaystones.change_name").withStyle(ChatFormatting.YELLOW))
-                    .setCallback((index, type, action, gui) -> {
-                        if (dialogMode) {
-                            gui.close();
-                            SettingsDialog.open(player, waystone);
-                        } else {
-                            new NameGui(waystone, player).open();
-                        }
-                    }));
+            this.setSlot(52,
+                    new GuiElementBuilder(Items.NAME_TAG).setName(
+                            Component.translatable("gui.sswaystones.change_name").withStyle(ChatFormatting.YELLOW))
+                            .setCallback((index, type, action, gui) -> {
+                                if (dialogMode) {
+                                    gui.close();
+                                    SettingsDialog.open(player, waystone);
+                                } else {
+                                    new NameGui(waystone, player).open();
+                                }
+                            }));
 
             this.setSlot(53,
-                    new GuiElementBuilder(Items.CARTOGRAPHY_TABLE)
-                            .setName(Component.translatable("gui.sswaystones.access_settings")
-                                    .withStyle(ChatFormatting.LIGHT_PURPLE))
+                    new GuiElementBuilder(Items.CARTOGRAPHY_TABLE).setName(Component
+                            .translatable("gui.sswaystones.access_settings").withStyle(ChatFormatting.LIGHT_PURPLE))
                             .setCallback((index, type, action, gui) -> {
                                 if (dialogMode) {
                                     gui.close();
@@ -259,8 +259,8 @@ public class JavaViewerGui extends SimpleGui {
         }
 
         private void updateMenu() {
-            // This menu intentionally keeps its own three-toggle access logic; the dialog and
-            // Bedrock form share AccessMode instead.
+            // This menu intentionally keeps its own three-toggle access logic; the
+            // dialog and Bedrock form share AccessMode instead.
 
             // Framing
             for (int i = 0; i < (9 * 3); i++) {
@@ -323,8 +323,8 @@ public class JavaViewerGui extends SimpleGui {
                 slot += 1;
             }
 
-            // Hide Name is available to anyone who can edit the waystone; green = hidden, matching
-            // the other toggles' "green = on" convention.
+            // Hide Name is available to anyone who can edit the waystone; green =
+            // hidden, matching the other toggles' "green = on" convention.
             GuiElementBuilder hideNameToggle = new GuiElementBuilder(Items.NAME_TAG)
                     .setName(Component.translatable("gui.sswaystones.toggle_hide_name")
                             .withStyle(accessSettings.isNameHidden() ? ChatFormatting.GREEN : ChatFormatting.RED));
@@ -334,8 +334,8 @@ public class JavaViewerGui extends SimpleGui {
             });
             this.setSlot(16, hideNameToggle);
 
-            // Barrier fallback when none of the permission-gated access toggles were available
-            // (Hide Name is always present and doesn't count).
+            // Barrier fallback when none of the permission-gated access toggles were
+            // available (Hide Name is always present and doesn't count).
             if (slot == 10) {
                 this.setSlot(13,
                         new GuiElementBuilder(Items.BARRIER)

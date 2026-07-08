@@ -100,8 +100,9 @@ public class Configuration {
         @Description(translation = "config.sswaystones.village_structures")
         public boolean injectVillageStructures = true;
 
-        // Which UI the Java "Access Settings" button opens: "sgui" (default chest menu) or
-        // "dialog" (native server dialog). Unrecognized values fall back to "sgui".
+        // Which UI the Java "Access Settings" button opens: "sgui" (default chest
+        // menu) or "dialog" (native server dialog). Unrecognized values fall back
+        // to "sgui".
         @SerializedName("settings_ui")
         @Description(translation = "config.sswaystones.settings_ui")
         public String settingsUi = "sgui";

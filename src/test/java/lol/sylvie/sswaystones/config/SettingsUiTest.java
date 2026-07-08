@@ -12,9 +12,10 @@ import lol.sylvie.sswaystones.config.Configuration.SettingsUi;
 import org.junit.jupiter.api.Test;
 
 /**
- * The config flag selecting the sgui vs native-dialog settings path. The DEFAULT must stay sgui
- * (non-breaking): only an explicit, case-insensitive "dialog" opts into the new UI; everything else
- * (null, empty, typos, the literal default) resolves to sgui.
+ * The config flag selecting the sgui vs native-dialog settings path. The
+ * DEFAULT must stay sgui (non-breaking): only an explicit, case-insensitive
+ * "dialog" opts into the new UI; everything else (null, empty, typos, the
+ * literal default) resolves to sgui.
  */
 class SettingsUiTest {
 

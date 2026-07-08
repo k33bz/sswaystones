@@ -12,10 +12,11 @@ import lol.sylvie.sswaystones.gui.AccessMode;
 import org.junit.jupiter.api.Test;
 
 /**
- * Parser guards for the {@code /waystonesettings apply} tail. The tricky cases — a name containing a
- * colon, the {@code "-"} leave-unchanged sentinel, and {@code access:} taking precedence over the
- * legacy per-field tokens — are locked down here so a regression fails fast rather than silently
- * mangling a name or fighting itself over access.
+ * Parser guards for the {@code /waystonesettings apply} tail. The tricky cases
+ * — a name containing a colon, the {@code "-"} leave-unchanged sentinel, and
+ * {@code access:} taking precedence over the legacy per-field tokens — are
+ * locked down here so a regression fails fast rather than silently mangling a
+ * name or fighting itself over access.
  */
 class ApplyArgsTest {
 
@@ -32,7 +33,8 @@ class ApplyArgsTest {
 
     @Test
     void nameMayContainColonsAndSpaces() {
-        // "Base: north" would previously truncate at the ": " — now name is greedy to end of string.
+        // "Base: north" would previously truncate at the ": " — now name is greedy to
+        // end of string.
         ApplyArgs a = ApplyArgs.parse("h1 access:private hidename:- name:Base: north");
         assertEquals("Base: north", a.newName().orElse(null));
         assertEquals(AccessMode.PRIVATE, a.accessMode().orElse(null));
@@ -111,7 +113,8 @@ class ApplyArgsTest {
 
     @Test
     void whitespaceIsTolerated() {
-        // the whole tail is trimmed once up front, so surrounding whitespace is stripped; interior
+        // the whole tail is trimmed once up front, so surrounding whitespace is
+        // stripped; interior
         // single spaces in the name are preserved verbatim.
         ApplyArgs a = ApplyArgs.parse("   h1    access:global    hidename:true    name:Trimmed Name  ");
         assertEquals("h1", a.hash());

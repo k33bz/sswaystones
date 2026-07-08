@@ -1,7 +1,7 @@
 plugins {
 	id 'net.fabricmc.fabric-loom' version '1.17-SNAPSHOT'
 	id 'maven-publish'
-	id "com.diffplug.spotless" version "7.0.0.BETA1"
+	id "com.diffplug.spotless" version "7.2.1"
 }
 
 version = project.mod_version
@@ -133,7 +133,9 @@ spotless {
 
 	java {
 		importOrder()
-		removeUnusedImports()
+		// The default engine (google-java-format) needs jdk.compiler internals that Gradle's
+		// classloader hides; the cleanthat engine does the same job without them.
+		removeUnusedImports('cleanthat-javaparser-unnecessaryimport')
 
 		cleanthat()
 

@@ -15,9 +15,9 @@ import lol.sylvie.sswaystones.storage.WaystoneRecord.AccessSettings;
 import org.junit.jupiter.api.Test;
 
 /**
- * AccessSettings apply/mutate + codec serialize round-trip, including the new hideName field.
- * hide_name must be OPTIONAL (defaulting false) so pre-existing saves without the key still load —
- * the non-breaking guarantee.
+ * AccessSettings apply/mutate + codec serialize round-trip, including the new
+ * hideName field. hide_name must be OPTIONAL (defaulting false) so pre-existing
+ * saves without the key still load — the non-breaking guarantee.
  */
 class AccessSettingsTest {
 
@@ -46,12 +46,8 @@ class AccessSettingsTest {
     void codecRoundTripPreservesEveryField() {
         AccessSettings original = new AccessSettings(true, false, "blue", true);
 
-        JsonElement json = AccessSettings.CODEC
-                .encodeStart(JsonOps.INSTANCE, original)
-                .getOrThrow();
-        AccessSettings decoded = AccessSettings.CODEC
-                .parse(JsonOps.INSTANCE, json)
-                .getOrThrow();
+        JsonElement json = AccessSettings.CODEC.encodeStart(JsonOps.INSTANCE, original).getOrThrow();
+        AccessSettings decoded = AccessSettings.CODEC.parse(JsonOps.INSTANCE, json).getOrThrow();
 
         assertEquals(original.isGlobal(), decoded.isGlobal());
         assertEquals(original.isServerOwned(), decoded.isServerOwned());

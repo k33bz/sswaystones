@@ -12,10 +12,12 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * Pure-logic guards for the collapsed "Access" selector: the mode -> fields mapping (each mode sets
- * exactly the right booleans+team), the fields -> initial-mode precedence (incl. legacy-combo
- * normalization), and the per-permission option filtering (server only for admins). A regression in
- * any of these would silently mis-set access on a live server, so each is asserted here.
+ * Pure-logic guards for the collapsed "Access" selector: the mode -> fields
+ * mapping (each mode sets exactly the right booleans+team), the fields ->
+ * initial-mode precedence (incl. legacy-combo normalization), and the
+ * per-permission option filtering (server only for admins). A regression in any
+ * of these would silently mis-set access on a live server, so each is asserted
+ * here.
  */
 class AccessModeTest {
 
@@ -76,7 +78,7 @@ class AccessModeTest {
 
     @Test
     void globalWinsOverTeam_legacyComboNormalizes() {
-        // a legacy redundant global+team collapses to the single displayed mode (global)
+        // a legacy redundant global+team combo collapses to the displayed mode
         assertEquals(AccessMode.GLOBAL, AccessMode.fromSettings(false, true, true));
     }
 
@@ -124,8 +126,8 @@ class AccessModeTest {
 
     @Test
     void currentModeAlwaysIncludedEvenWithoutPerm() {
-        // a waystone already server-owned keeps the server option for a non-admin viewer, so
-        // re-saving can't silently downgrade it
+        // a waystone already server-owned keeps the server option for a non-admin
+        // viewer, so re-saving can't silently downgrade it
         List<AccessMode> modes = AccessMode.availableModes(AccessMode.SERVER, false, false, false);
         assertTrue(modes.contains(AccessMode.SERVER), "current mode must always be offered");
         assertEquals(List.of(AccessMode.PRIVATE, AccessMode.SERVER), modes);

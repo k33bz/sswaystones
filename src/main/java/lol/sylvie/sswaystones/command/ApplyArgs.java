@@ -8,16 +8,20 @@ import java.util.Optional;
 import lol.sylvie.sswaystones.gui.AccessMode;
 
 /**
- * Parsed argument tail of {@code /waystonesettings apply}. Kept free of Minecraft/Brigadier
- * imports so the tricky cases (a name containing a colon, the {@code "-"} leave-unchanged
- * sentinel, {@code access:} vs the legacy per-field tokens) are unit-testable.
+ * Parsed argument tail of {@code /waystonesettings apply}. Kept free of
+ * Minecraft/Brigadier imports so the tricky cases (a name containing a colon,
+ * the {@code "-"} leave-unchanged sentinel, {@code access:} vs the legacy
+ * per-field tokens) are unit-testable.
  *
  * <p>
- * Grammar (one greedy string): {@code <hash> [key:value ...] [name:<free text to end>]}. The
- * short-value keys are {@code access}, {@code global}, {@code team}, {@code server},
- * {@code hidename}. {@code name} may contain spaces and colons, so it always comes last and
- * consumes the rest of the string. When {@code access:} is present it is authoritative and the
- * legacy per-field {@code global:/team:/server:} tokens are ignored, so the two forms never fight.
+ * Grammar (one greedy string):
+ * {@code <hash> [key:value ...] [name:<free text to end>]}. The short-value
+ * keys are {@code access}, {@code global}, {@code team}, {@code server},
+ * {@code hidename}. {@code name} may contain spaces and colons, so it always
+ * comes last and consumes the rest of the string. When {@code access:} is
+ * present it is authoritative and the legacy per-field
+ * {@code global:/team:/server:} tokens are ignored, so the two forms never
+ * fight.
  */
 public final class ApplyArgs {
     // A value that is present but should be left unchanged.
@@ -58,7 +62,8 @@ public final class ApplyArgs {
             rest = s.substring(sp + 1).trim();
         }
 
-        // Split name: off first so its free text (spaces/colons) can't be mis-parsed as other keys.
+        // Split name: off first so its free text (spaces/colons) can't be mis-parsed
+        // as other keys.
         Optional<String> name = Optional.empty();
         int nameIdx = indexOfKey(rest, "name");
         if (nameIdx >= 0) {
@@ -89,7 +94,10 @@ public final class ApplyArgs {
         return hash;
     }
 
-    /** The new name if a name: token was given AND it isn't the leave-unchanged sentinel. */
+    /**
+     * The new name if a name: token was given AND it isn't the leave-unchanged
+     * sentinel.
+     */
     public Optional<String> newName() {
         return name.filter(ApplyArgs::isSet);
     }
@@ -99,7 +107,10 @@ public final class ApplyArgs {
         return accessMode;
     }
 
-    /** Legacy per-field global (true/false), present only when access: was absent and it was set. */
+    /**
+     * Legacy per-field global (true/false), present only when access: was absent
+     * and it was set.
+     */
     public Optional<Boolean> global() {
         return global.filter(ApplyArgs::isSet).map(ApplyArgs::parseBool);
     }
@@ -118,7 +129,10 @@ public final class ApplyArgs {
 
     // --- helpers (package-visible for tests) ---
 
-    /** A value is "set" (should be applied) when present and not the "-" leave-unchanged sentinel. */
+    /**
+     * A value is "set" (should be applied) when present and not the "-"
+     * leave-unchanged sentinel.
+     */
     static boolean isSet(String v) {
         return v != null && !v.equals(SENTINEL);
     }
@@ -135,7 +149,8 @@ public final class ApplyArgs {
         return -1;
     }
 
-    // Index of a "key:" occurrence at a token boundary (start or after whitespace), or -1.
+    // Index of a "key:" occurrence at a token boundary (start or after
+    // whitespace), or -1.
     private static int indexOfKey(String s, String key) {
         String needle = key + ":";
         int from = 0;
@@ -149,7 +164,8 @@ public final class ApplyArgs {
         }
     }
 
-    // Pull a SHORT (no-spaces) token value: "key:" up to the next whitespace (or end).
+    // Pull a short (no-spaces) token value: "key:" up to the next
+    // whitespace or end-of-string.
     private static Optional<String> shortToken(String s, String key) {
         int i = indexOfKey(s, key);
         if (i < 0)

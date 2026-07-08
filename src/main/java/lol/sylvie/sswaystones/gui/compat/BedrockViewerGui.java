@@ -120,21 +120,24 @@ public class BedrockViewerGui {
         WaystoneRecord.AccessSettings accessSettings = waystone.getAccessSettings();
         builder.input("Waystone Name", NameGenerator.generateName(), waystone.getWaystoneName());
 
-        // Access is one dropdown routed through AccessMode, same as the Java settings dialog.
+        // Access is one dropdown routed through AccessMode, just like the Java
+        // settings dialog.
         boolean globalAvailable = Permissions.check(player, "sswaystones.create.global", true);
         boolean teamAvailable = player.getTeam() != null && Permissions.check(player, "sswaystones.create.team", true);
         boolean serverAvailable = Permissions.check(player, "sswaystones.create.server", 4);
 
         AccessMode currentMode = AccessMode.fromSettings(accessSettings.isServerOwned(), accessSettings.isGlobal(),
                 accessSettings.hasTeam());
-        List<AccessMode> modes = AccessMode.availableModes(currentMode, teamAvailable, globalAvailable, serverAvailable);
+        List<AccessMode> modes = AccessMode.availableModes(currentMode, teamAvailable, globalAvailable,
+                serverAvailable);
         List<String> modeLabels = new ArrayList<>();
         for (AccessMode m : modes)
             modeLabels.add(bedrockModeLabel(m));
         int defaultIndex = Math.max(modes.indexOf(currentMode), 0);
         builder.dropdown("Access", modeLabels, defaultIndex);
 
-        // Hide Name matters most on Bedrock, where the floating name is readable through walls.
+        // Hide Name matters most on Bedrock, where the floating name is readable
+        // through walls.
         builder.toggle("Hide Name", accessSettings.isNameHidden());
 
         builder.validResultHandler(response -> {
@@ -165,7 +168,8 @@ public class BedrockViewerGui {
         return builder.build();
     }
 
-    // Bedrock forms take plain strings; the Java dialog uses lang keys for the same labels.
+    // Bedrock forms take plain strings; the Java dialog uses lang keys for the
+    // same labels.
     private static String bedrockModeLabel(AccessMode mode) {
         return switch (mode) {
             case PRIVATE -> "Private";

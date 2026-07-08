@@ -189,16 +189,17 @@ public class WaystonesCommand {
                             return 1;
                         })))));
 
-        // Backend for the settings dialog's submit action. `apply` is reachable by any player
-        // (permission 0) and self-guards via canPlayerEdit plus the same per-field permission
-        // checks the dialog used, so a hand-crafted command cannot escalate access. The tail is one
-        // greedy string ("-" = leave unchanged) because dialog $(key) substitution produces a
-        // single argument:
-        //   waystonesettings apply <hash> access:<mode|-> hidename:<t/f/-> name:<free text>
+        // Backend for the settings dialog's submit action. `apply` is reachable by
+        // any player (permission 0) and self-guards via canPlayerEdit plus the same
+        // per-field permission checks the dialog used, so a hand-crafted command
+        // cannot escalate access. The tail is one greedy string ("-" = leave
+        // unchanged) because dialog $(key) substitution produces a single argument:
+        // waystonesettings apply <hash> access:<m|-> hidename:<t/f/-> name:<text>
         dispatcher.register(literal("waystonesettings")
                 .then(literal("apply").then(
                         argument("args", StringArgumentType.greedyString()).executes(WaystonesCommand::applySettings)))
-                // Admin-gated debug/test hooks: mint a waystone, open a viewer, echo stored settings.
+                // Admin-gated debug/test hooks: mint a waystone, open a viewer,
+                // echo stored settings.
                 .then(literal("testcreate")
                         .requires(source -> Permissions.check(source, "sswaystones.manager", PermissionLevel.ADMINS))
                         .executes(WaystonesCommand::testCreate))
@@ -210,9 +211,10 @@ public class WaystonesCommand {
                         .then(argument("hash", StringArgumentType.word()).executes(WaystonesCommand::testGet))));
     }
 
-    // Echoes stored settings in a stable, parseable line (the SavedData store isn't queryable via
-    // /data get), for admin debugging and RCON-driven test assertions:
-    //   waystone_settings <hash> name=<name> global=<t/f> server=<t/f> team=<team-or-> hidename=<t/f>
+    // Echoes stored settings in a stable, parseable line, for admin debugging and
+    // RCON-driven test assertions (the SavedData store isn't queryable via /data):
+    // waystone_settings <hash> name=<name> global=<t/f> server=<t/f>
+    // team=<team-or-> hidename=<t/f>
     private static int testGet(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         WaystoneStorage storage = WaystoneStorage.getServerState(context.getSource().getServer());
         WaystoneRecord record = storage.getWaystone(StringArgumentType.getString(context, "hash"));
@@ -228,7 +230,8 @@ public class WaystonesCommand {
         return 1;
     }
 
-    // Creates a waystone at the caller's position (as if placed by them) and echoes the hash.
+    // Creates a waystone at the caller's position (as if placed by them) and
+    // echoes the hash.
     private static int testCreate(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer player = context.getSource().getPlayerOrException();
         WaystoneStorage storage = WaystoneStorage.getServerState(context.getSource().getServer());
@@ -240,7 +243,8 @@ public class WaystonesCommand {
         return 1;
     }
 
-    // Opens the viewer for the given hash, exactly like a right-click on the waystone would.
+    // Opens the viewer for the given hash, exactly like a right-click on the
+    // waystone would.
     private static int testOpen(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer player = context.getSource().getPlayerOrException();
         WaystoneStorage storage = WaystoneStorage.getServerState(context.getSource().getServer());
@@ -264,14 +268,15 @@ public class WaystonesCommand {
                     Component.translatable("command.sswaystones.waystone_not_found"));
         }
         if (!waystone.canPlayerEdit(player)) {
-            player.sendSystemMessage(
-                    Component.translatable("error.sswaystones.no_modification_permission").withStyle(ChatFormatting.RED));
+            player.sendSystemMessage(Component.translatable("error.sswaystones.no_modification_permission")
+                    .withStyle(ChatFormatting.RED));
             return 0;
         }
 
         WaystoneRecord.AccessSettings access = waystone.getAccessSettings();
 
-        // Snapshot before mutating, to detect a no-op submit and to log the prior access state.
+        // Snapshot before mutating, to detect a no-op submit and to log the prior
+        // access state.
         boolean beforeGlobal = access.isGlobal();
         boolean beforeServer = access.isServerOwned();
         String beforeTeam = access.getTeam();
@@ -289,8 +294,8 @@ public class WaystonesCommand {
         boolean canServer = Permissions.check(player, "sswaystones.create.server", PermissionLevel.ADMINS);
 
         if (args.accessMode().isPresent()) {
-            // Single access-mode form (dialog + Bedrock dropdown): map the mode back to the three
-            // fields, re-checking the same permissions the UI used to offer it.
+            // Single access-mode form (dialog + Bedrock dropdown): map the mode back
+            // to the three fields, re-checking the same permissions the UI offered.
             AccessMode mode = args.accessMode().get();
             if (mode.isAllowed(canTeam, canGlobal, canServer)) {
                 newGlobal = mode.global();
@@ -316,10 +321,9 @@ public class WaystonesCommand {
             return 1;
         }
 
-        // Log the prior access state so a change (including collapsing a legacy global+team combo
-        // down to one mode) is recoverable from the server log.
-        boolean accessChanging = newGlobal != beforeGlobal || newServer != beforeServer
-                || !newTeam.equals(beforeTeam);
+        // Log the prior access state so a change (including collapsing a legacy
+        // global+team combo down to one mode) is recoverable from the server log.
+        boolean accessChanging = newGlobal != beforeGlobal || newServer != beforeServer || !newTeam.equals(beforeTeam);
         if (accessChanging) {
             Waystones.LOGGER.info(
                     "Waystone {} ({}) access changing by {}: was [global={}, server={}, team='{}', hideName={}] -> "
