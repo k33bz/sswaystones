@@ -9,6 +9,9 @@ This fork is a **drop-in replacement**: same mod id, same save data, same config
 ## What this fork adds
 
 - **Native settings dialog (opt-in).** Set `settings_ui` to `dialog` and the Java "Access Settings" button opens a single vanilla server dialog — name, access level, and hide-name in one form, mirroring the Bedrock experience. The default (`sgui`) keeps the classic chest menus untouched.
+
+  ![The native settings dialog: name field, one cycling Access selector, and the Hide Name toggle in a single form](assets/settings-dialog.png)
+
 - **One Access selector.** Instead of three independent Global/Team/Server toggles, the dialog and the Bedrock form present one mutually-exclusive access mode (Private / Team / Global / Server-owned), permission-filtered, with the waystone's current mode always preserved on re-save. All changes are re-validated server-side — the UI can't be used to escalate permissions.
 - **Hide Name toggle.** Hide a waystone's floating name hologram (especially useful against Bedrock clients, which can read it through walls). Available in all three settings UIs; saved as an optional field, so existing worlds load unchanged. Feature idea credit: [Hellscaped](https://github.com/sylvxa/sswaystones/pull/51).
 - **Viewer polish.** Page arrows only appear when there is more than one page, entries carry "Left-click: Teleport / Right-click: Forget" hints, and forget-eligibility is properly guarded.
