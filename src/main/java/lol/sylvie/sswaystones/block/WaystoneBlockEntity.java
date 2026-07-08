@@ -14,12 +14,12 @@ import lol.sylvie.sswaystones.Waystones;
 import lol.sylvie.sswaystones.storage.WaystoneRecord;
 import lol.sylvie.sswaystones.storage.WaystoneStorage;
 import lol.sylvie.sswaystones.util.HashUtil;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Display;
@@ -30,7 +30,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.PlayerTeam;
-import net.minecraft.world.scores.TeamColor;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
@@ -64,14 +63,14 @@ public class WaystoneBlockEntity extends BlockEntity {
         // and it would reset jarringly if it wasn't separate from the display objects
         waystoneEntity.eyeDisplay.setYaw(((world.getGameTime() + waystoneEntity.hashCode()) % 90) * 4);
 
-        TeamColor color = null;
+        ChatFormatting color = ChatFormatting.RESET;
         if (waystoneOwned) {
             // Team coloring
             String teamName = record.getAccessSettings().getTeam();
             if (!teamName.isEmpty()) {
                 PlayerTeam team = world.getScoreboard().getPlayerTeam(teamName);
                 if (team != null) {
-                    color = team.getColor().orElse(null);
+                    color = team.getColor();
                 }
             }
 
@@ -81,10 +80,7 @@ public class WaystoneBlockEntity extends BlockEntity {
             if (waystoneEntity.nameDisplay == null)
                 return;
 
-            MutableComponent displayName = record.getWaystoneText().copy();
-            if (color != null)
-                displayName.withColor(color.textColor());
-            waystoneEntity.nameDisplay.setText(displayName);
+            waystoneEntity.nameDisplay.setText(record.getWaystoneText().copy().withStyle(color));
 
             // Bob up and down
             double y = (Math.sin((double) System.currentTimeMillis() / 1000) / 32) + 1.55d;
@@ -93,10 +89,11 @@ public class WaystoneBlockEntity extends BlockEntity {
 
         // Particles
         if (RANDOM.nextInt(0, waystoneOwned ? 20 : 10) == 0 && world instanceof ServerLevel serverWorld) {
-            Vec3 pos = Vec3.atBottomCenterOf(waystoneEntity.getBlockPos()).add(0, 1, 0);
+            Vec3 pos = waystoneEntity.getBlockPos().getBottomCenter().add(0, 1, 0);
+            Integer colorValue = color.getColor();
 
-            boolean noTeam = color == null;
-            ParticleOptions options = noTeam ? ParticleTypes.PORTAL : new DustParticleOptions(color.rgb(), 1f);
+            boolean noTeam = color == ChatFormatting.RESET || colorValue == null;
+            ParticleOptions options = noTeam ? ParticleTypes.PORTAL : new DustParticleOptions(colorValue, 1f);
 
             serverWorld.sendParticles(options, pos.x(), pos.y(), pos.z(), 8, 0.1d, 0.1d, 0.1d, 0.1d);
         }
