@@ -26,8 +26,10 @@ jobs:
       - name: Spotless check (non-fatal — eclipse formatter is an external SPOF)
         continue-on-error: true
         run: ./gradlew spotlessCheck
+      - name: Artifact slug
+        run: echo "ARTIFACT_SLUG=${GITHUB_REF_NAME//\//-}" >> "$GITHUB_ENV"
       - name: Upload jar
         uses: actions/upload-artifact@v7
         with:
-          name: sswaystones-${{ github.ref_name }}
+          name: sswaystones-${{ env.ARTIFACT_SLUG }}
           path: build/libs/*.jar
