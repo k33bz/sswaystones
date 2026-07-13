@@ -76,7 +76,7 @@ public class WaystonesCommand {
 
                     // Remove it in the world
                     ServerLevel world = record.getWorld(server);
-                    if (world.getBlockState(record.getPos()).is(ModBlocks.WAYSTONE)) {
+                    if (world != null && world.getBlockState(record.getPos()).is(ModBlocks.WAYSTONE)) {
                         world.destroyBlock(record.getPos(), true);
                     }
 
