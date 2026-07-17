@@ -44,6 +44,10 @@ public class Waystones implements ModInitializer {
                 .register((dispatcher, registryAccess, environment) -> WaystonesCommand.register(dispatcher));
 
         ServerLifecycleEvents.SERVER_STARTING.register(VillageInjector::inject);
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK
+                .register(lol.sylvie.sswaystones.announce.WaystoneAnnouncer::tick);
+        net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.DISCONNECT.register((handler,
+                server) -> lol.sylvie.sswaystones.announce.WaystoneAnnouncer.forget(handler.player.getUUID()));
         ResourceLoader.registerBuiltinPack(Waystones.id("remove_waystone_recipes"),
                 FabricLoader.getInstance().getModContainer(MOD_ID).orElseThrow(), PackActivationType.NORMAL);
     }
