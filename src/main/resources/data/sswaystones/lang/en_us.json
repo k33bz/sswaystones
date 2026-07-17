@@ -71,5 +71,7 @@
   "config.sswaystones.physical_icon_display": "Changes the Eye of Ender above each waystone to the icon it has.",
   "config.sswaystones.random_name_language": "The language of randomly generated waystone names, in language code. (en_us by default)",
   "config.sswaystones.village_structures": "Add waystone structures inside of villages (applies on restart)",
-  "config.sswaystones.settings_ui": "Which UI the Java 'Access Settings' button opens: 'sgui' (default chest menu) or 'dialog' (native settings dialog with name + toggles)."
+  "config.sswaystones.settings_ui": "Which UI the Java 'Access Settings' button opens: 'sgui' (default chest menu) or 'dialog' (native settings dialog with name + toggles).",
+  "config.sswaystones.announce_landmark_on_approach": "Announce a public landmark waystone's name when a player walks near it (title on first discovery, actionbar after).",
+  "config.sswaystones.announce_radius": "How close (blocks) a player must come for a landmark waystone to announce itself."
 }

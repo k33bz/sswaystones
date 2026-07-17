@@ -88,6 +88,14 @@ public class Configuration {
         @Description(translation = "config.sswaystones.remove_invalid_waystones")
         public boolean removeInvalidWaystones = true;
 
+        @SerializedName("announce_landmark_on_approach")
+        @Description(translation = "config.sswaystones.announce_landmark_on_approach")
+        public boolean announceLandmarkOnApproach = true;
+
+        @SerializedName("announce_radius")
+        @Description(translation = "config.sswaystones.announce_radius")
+        public int announceRadius = 32;
+
         @SerializedName("physical_icon_display")
         @Description(translation = "config.sswaystones.physical_icon_display")
         public boolean physicalIconDisplay = false;
