@@ -71,5 +71,6 @@
   "config.sswaystones.physical_icon_display": "Changes the Eye of Ender above each waystone to the icon it has.",
   "config.sswaystones.random_name_language": "The language of randomly generated waystone names, in language code. (en_us by default)",
   "config.sswaystones.village_structures": "Add waystone structures inside of villages (applies on restart)",
-  "config.sswaystones.settings_ui": "Which UI the Java 'Access Settings' button opens: 'sgui' (default chest menu) or 'dialog' (native settings dialog with name + toggles)."
+  "config.sswaystones.settings_ui": "Which UI the Java 'Access Settings' button opens: 'sgui' (default chest menu) or 'dialog' (native settings dialog with name + toggles).",
+  "config.sswaystones.access_mode_icons": "Show a globe marker head on global and server-owned waystones, overriding the owner's chosen icon. Purely visual; the owner's icon returns if the waystone goes back to private/team."
 }
