@@ -128,10 +128,26 @@ public class JavaViewerGui extends SimpleGui {
                         }));
             }
 
-            // Setting menus
-            this.setSlot(51, new GuiElementBuilder(waystone.getIconOrHead(player.level().getServer()))
-                    .setName(Component.translatable("gui.sswaystones.change_icon").withStyle(ChatFormatting.YELLOW))
-                    .glow().setCallback((index, type, action, gui) -> new IconGui(waystone, player).open()));
+            // Setting menus. When a public marker head overrides the owner's icon (see
+            // AccessMode.headTexture / getIconOrHead), changing the icon would have no
+            // visible effect, so the control is crossed out rather than clickable — the
+            // stored icon still returns if the waystone is later made private/team.
+            WaystoneRecord.AccessSettings acc = waystone.getAccessSettings();
+            boolean iconOverridden = Waystones.configuration.getInstance().accessModeIcons
+                    && AccessMode.fromSettings(acc.isServerOwned(), acc.isGlobal(), acc.hasTeam()).headTexture() != null;
+            if (iconOverridden) {
+                this.setSlot(51, new GuiElementBuilder(waystone.getIconOrHead(player.level().getServer()))
+                        .setName(Component.translatable("gui.sswaystones.change_icon")
+                                .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.STRIKETHROUGH))
+                        .setLore(List.of(Component.translatable("gui.sswaystones.icon_overridden")
+                                .withStyle(ChatFormatting.GRAY)))
+                        .setCallback((index, type, action, gui) -> {
+                        }));
+            } else {
+                this.setSlot(51, new GuiElementBuilder(waystone.getIconOrHead(player.level().getServer()))
+                        .setName(Component.translatable("gui.sswaystones.change_icon").withStyle(ChatFormatting.YELLOW))
+                        .glow().setCallback((index, type, action, gui) -> new IconGui(waystone, player).open()));
+            }
 
             boolean dialogMode = Waystones.configuration.useDialogUi();
 

@@ -27,6 +27,7 @@
   "gui.sswaystones.entry_forget": "Right-click: Forget",
   "gui.sswaystones.steal_waystone": "Take Ownership",
   "gui.sswaystones.change_icon": "Change Icon",
+  "gui.sswaystones.icon_overridden": "Public waystones show a globe marker — set it private or team to choose an icon.",
   "gui.sswaystones.change_icon_title": "Waystone Icon",
   "gui.sswaystones.change_icon_instruction": "Click on an item in your inventory to set the icon!",
   "gui.sswaystones.change_name": "Change Name",
