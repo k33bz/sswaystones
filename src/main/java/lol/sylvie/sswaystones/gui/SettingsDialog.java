@@ -109,15 +109,8 @@ public final class SettingsDialog {
         };
     }
 
-    // Package-visible: the viewer list (JavaViewerGui) colours each waystone's name by
-    // the same access palette so the dialog selector and the list agree at a glance.
-    static ChatFormatting modeColor(AccessMode mode) {
-        return switch (mode) {
-            case PRIVATE -> ChatFormatting.GRAY;
-            case TEAM -> ChatFormatting.AQUA;
-            case GLOBAL -> ChatFormatting.GREEN;
-            case SERVER -> ChatFormatting.GOLD;
-        };
+    private static ChatFormatting modeColor(AccessMode mode) {
+        return lol.sylvie.sswaystones.util.WaystoneColors.modeColor(mode);
     }
 
     private static Input text(String key, String label, String initial, int maxLength) {

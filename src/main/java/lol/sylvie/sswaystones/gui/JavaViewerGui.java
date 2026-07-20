@@ -66,13 +66,15 @@ public class JavaViewerGui extends SimpleGui {
             if (slot >= 45)
                 break;
 
-            // Colour the entry's hover-name by its access mode (gray/aqua/green/gold),
-            // matching the settings dialog's selector so a waystone's reach reads at a glance.
-            WaystoneRecord.AccessSettings entryAccess = record.getAccessSettings();
-            AccessMode entryMode = AccessMode.fromSettings(entryAccess.isServerOwned(), entryAccess.isGlobal(),
-                    entryAccess.hasTeam());
+            // Colour the entry's hover-name by its reach: a team waystone in its real team
+            // colour (matching the in-world hologram), else the access-mode palette.
+            net.minecraft.network.chat.MutableComponent entryName = record.getWaystoneText().copy();
+            net.minecraft.network.chat.TextColor entryColor = lol.sylvie.sswaystones.util.WaystoneColors
+                    .nameColor(record, player.level().getScoreboard());
+            if (entryColor != null)
+                entryName.withStyle(style -> style.withColor(entryColor));
             GuiElementBuilder element = new GuiElementBuilder(record.getIconOrHead(player.level().getServer()))
-                    .setName(record.getWaystoneText().copy().withStyle(SettingsDialog.modeColor(entryMode)));
+                    .setName(entryName);
 
             List<Component> lore = new ArrayList<>();
             if (!record.getAccessSettings().isServerOwned())
