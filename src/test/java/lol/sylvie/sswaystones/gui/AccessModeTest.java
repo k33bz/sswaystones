@@ -127,12 +127,33 @@ class AccessModeTest {
     }
 
     @Test
-    void currentModeAlwaysIncludedEvenWithoutPerm() {
-        // a waystone already server-owned keeps the server option for a non-admin
-        // viewer, so re-saving can't silently downgrade it
-        List<AccessMode> modes = AccessMode.availableModes(AccessMode.SERVER, false, false, false);
-        assertTrue(modes.contains(AccessMode.SERVER), "current mode must always be offered");
-        assertEquals(List.of(AccessMode.PRIVATE, AccessMode.SERVER), modes);
+    void serverOwnedIsLockedForNonAdmins() {
+        // SECURITY: a non-admin viewing a server-owned waystone may NOT demote it — the
+        // selector offers ONLY server, with no private/global/team escape hatch. (This
+        // replaced the old behavior that always offered PRIVATE, which let a non-admin
+        // owner reclaim a server waystone as their own.)
+        assertEquals(List.of(AccessMode.SERVER),
+                AccessMode.availableModes(AccessMode.SERVER, false, false, false));
+        assertEquals(List.of(AccessMode.SERVER),
+                AccessMode.availableModes(AccessMode.SERVER, true, true, false));
+    }
+
+    @Test
+    void adminMayMoveAServerOwnedWaystone() {
+        // An admin (canServer) sees the full set and can demote or relabel it.
+        List<AccessMode> admin = AccessMode.availableModes(AccessMode.SERVER, false, true, true);
+        assertTrue(admin.contains(AccessMode.PRIVATE), "admin can demote to private");
+        assertTrue(admin.contains(AccessMode.SERVER));
+    }
+
+    @Test
+    void nonServerCurrentModeStillIncludedWithoutPerm() {
+        // The lock is specific to server-owned; a global waystone still keeps global on
+        // the menu for its owner even if the global perm were revoked, so a re-save can't
+        // silently drop it.
+        List<AccessMode> modes = AccessMode.availableModes(AccessMode.GLOBAL, false, false, false);
+        assertTrue(modes.contains(AccessMode.GLOBAL), "current non-server mode stays offered");
+        assertTrue(modes.contains(AccessMode.PRIVATE));
     }
 
     @Test
