@@ -205,6 +205,25 @@ class AccessModeTest {
         assertNotEquals(AccessMode.GLOBAL.headTexture(), AccessMode.SERVER.headTexture());
     }
 
+    // --- edit permission (server-owned = admin only) ---
+
+    @Test
+    void serverOwnedIsEditableOnlyByAdmins() {
+        // SECURITY: the nominal owner (non-admin) may NOT edit a server-owned waystone —
+        // no rename, hide-name, or access change. Only an admin can.
+        assertFalse(AccessMode.canEdit(true, true, false), "owner (non-admin) cannot edit server waystone");
+        assertFalse(AccessMode.canEdit(true, false, false));
+        assertTrue(AccessMode.canEdit(true, false, true), "admin can edit server waystone");
+        assertTrue(AccessMode.canEdit(true, true, true));
+    }
+
+    @Test
+    void ordinaryWaystoneIsEditableByOwnerOrAdmin() {
+        assertTrue(AccessMode.canEdit(false, true, false), "owner edits their own waystone");
+        assertTrue(AccessMode.canEdit(false, false, true), "admin edits any waystone");
+        assertFalse(AccessMode.canEdit(false, false, false), "a stranger cannot edit");
+    }
+
     /**
      * The textures are base64 skin blobs pinned to specific minecraft-heads
      * entries; decoding them guards against a truncated/re-wrapped paste, which

@@ -197,8 +197,9 @@ public final class WaystoneRecord {
     }
 
     public boolean canPlayerEdit(ServerPlayer player) {
-        return this.getOwnerUUID().equals(player.getUUID())
-                || Permissions.check(player, "sswaystones.manager", PermissionLevel.ADMINS);
+        return AccessMode.canEdit(this.getAccessSettings().isServerOwned(),
+                this.getOwnerUUID().equals(player.getUUID()),
+                Permissions.check(player, "sswaystones.manager", PermissionLevel.ADMINS));
     }
 
     public int getXpCost(ServerPlayer player) {
