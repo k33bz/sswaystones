@@ -2,6 +2,12 @@
 
 ## Unreleased (k33bz fork)
 
+- **Security:** a server-owned waystone can now only be edited by an admin. Previously its
+  nominal owner (a regular player) could still rename it or hide its name — only the access
+  mode was locked (k33bz.4). `canPlayerEdit` now returns admin-only for server-owned waystones,
+  closing rename / hide-name / access / icon across the Java UI, Bedrock UI, and the command
+  backend. (Forget/delete and block-breaking were already blocked for server-owned.)
+
 - Waystone names are now colour-coded by reach, consistently in the viewer list *and* the
   in-world hologram: a **team** waystone shows its team's real colour (matching the floating
   name), while global (green), server (gold), and private (gray) use the access palette. One

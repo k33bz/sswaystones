@@ -111,6 +111,18 @@ public enum AccessMode {
         };
     }
 
+    /**
+     * Who may edit a waystone's settings (rename, hide-name, access, icon). A
+     * <em>server-owned</em> waystone is admin-controlled infrastructure: only an admin may
+     * edit it — its nominal owner (a regular player) may not. Any other waystone is editable
+     * by its owner or an admin. Kept here (Minecraft-free) so it's unit-testable.
+     */
+    public static boolean canEdit(boolean serverOwned, boolean isOwner, boolean isAdmin) {
+        if (serverOwned)
+            return isAdmin;
+        return isOwner || isAdmin;
+    }
+
     // ---- Marker head textures -------------------------------------------------
     // Publicly-reachable waystones get a recognisable globe head so players can
     // tell them apart at a glance in the viewer, whatever icon the owner picked.
