@@ -81,9 +81,14 @@ public class WaystoneBlockEntity extends BlockEntity {
             if (waystoneEntity.nameDisplay == null)
                 return;
 
+            // Name colour: team waystone -> real team colour, else the access-mode palette,
+            // shared with the viewer list via WaystoneColors. (color, above, still drives the
+            // team-vs-portal particle choice below.)
             MutableComponent displayName = record.getWaystoneText().copy();
-            if (color != null)
-                displayName.withColor(color.textColor());
+            net.minecraft.network.chat.TextColor nameCol =
+                    lol.sylvie.sswaystones.util.WaystoneColors.nameColor(record, world.getScoreboard());
+            if (nameCol != null)
+                displayName.withStyle(style -> style.withColor(nameCol));
             waystoneEntity.nameDisplay.setText(displayName);
 
             // Bob up and down

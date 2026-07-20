@@ -2,9 +2,10 @@
 
 ## Unreleased (k33bz fork)
 
-- Waystone list entries in the viewer are now colour-coded by access mode — private (gray),
-  team (aqua), global (green), server (gold) — matching the settings dialog's selector, so a
-  waystone's reach reads at a glance from its hover name.
+- Waystone names are now colour-coded by reach, consistently in the viewer list *and* the
+  in-world hologram: a **team** waystone shows its team's real colour (matching the floating
+  name), while global (green), server (gold), and private (gray) use the access palette. One
+  shared `WaystoneColors` helper drives the dialog selector, the list, and the hologram.
 
 - **Security:** a non-admin can no longer demote a **server-owned** waystone. The access selector
   now locks a server-owned waystone to "server" for anyone without the admin `create.server`
