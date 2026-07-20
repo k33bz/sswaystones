@@ -288,7 +288,11 @@ public class WaystonesCommand {
             // Map the mode back to the fields, re-checking the same permissions the
             // UI used to offer it
             AccessMode mode = args.accessMode().get();
-            if (mode.isAllowed(canTeam, canGlobal, canServer)) {
+            // Moving a waystone OUT of server-owned is itself an admin action (parity with
+            // setting it) — otherwise a non-admin owner could reclaim a server waystone by
+            // picking private/global. The UI hides these options; this is the server-side gate.
+            boolean leavingServer = beforeServer && mode != AccessMode.SERVER;
+            if (mode.isAllowed(canTeam, canGlobal, canServer) && (!leavingServer || canServer)) {
                 newGlobal = mode.global();
                 newServer = mode.serverOwned();
                 newTeam = mode.team(player.getTeam() != null ? player.getTeam().getName() : "");

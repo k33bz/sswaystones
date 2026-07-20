@@ -80,6 +80,12 @@ public enum AccessMode {
      */
     public static List<AccessMode> availableModes(AccessMode current, boolean canTeam, boolean canGlobal,
             boolean canServer) {
+        // A server-owned waystone is an admin resource: only someone who could SET server
+        // (an admin) may move it to another mode. A non-admin — even the nominal owner —
+        // sees it LOCKED on server, so they can't quietly reclaim it as private/global.
+        if (current == SERVER && !canServer) {
+            return List.of(SERVER);
+        }
         List<AccessMode> modes = new ArrayList<>();
         modes.add(PRIVATE); // always
         if (canTeam || current == TEAM)

@@ -2,6 +2,11 @@
 
 ## Unreleased (k33bz fork)
 
+- **Security:** a non-admin can no longer demote a **server-owned** waystone. The access selector
+  now locks a server-owned waystone to "server" for anyone without the admin `create.server`
+  permission (previously it always offered Private, letting the nominal owner reclaim it), and
+  the `/waystonesettings apply` backend rejects leaving server-owned without that permission.
+
 - Global and server-owned waystones now render a globe marker head in place of the owner's
   chosen icon, so public destinations stand out in the viewer (global: minecraft-heads #102645,
   server-owned: #3638). Applied at render time, so demoting back to private/team restores the
