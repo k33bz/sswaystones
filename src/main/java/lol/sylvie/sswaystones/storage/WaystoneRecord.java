@@ -17,6 +17,8 @@ import java.util.UUID;
 import lol.sylvie.sswaystones.Waystones;
 import lol.sylvie.sswaystones.block.WaystoneBlock;
 import lol.sylvie.sswaystones.config.Configuration;
+import lol.sylvie.sswaystones.gui.AccessIcons;
+import lol.sylvie.sswaystones.gui.AccessMode;
 import lol.sylvie.sswaystones.gui.ViewerUtil;
 import lol.sylvie.sswaystones.util.HashUtil;
 import me.lucko.fabric.api.permissions.v0.Permissions;
@@ -207,6 +209,17 @@ public final class WaystoneRecord {
     }
 
     public ItemStack getIconOrHead(@Nullable MinecraftServer server) {
+        // Publicly-reachable waystones wear a globe marker head, overriding whatever
+        // icon the owner picked, so public destinations are obvious in the viewer.
+        // Applied here (render time) rather than stored, so demoting back to
+        // private/team restores the owner's original icon for free.
+        if (Waystones.configuration.getInstance().accessModeIcons) {
+            ItemStack marker = AccessIcons.iconFor(AccessMode.fromSettings(accessSettings.isServerOwned(),
+                    accessSettings.isGlobal(), !accessSettings.getTeam().isEmpty()));
+            if (marker != null)
+                return marker;
+        }
+
         if (icon != null && icon != Items.PLAYER_HEAD)
             return icon.getDefaultInstance();
 

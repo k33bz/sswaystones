@@ -6,6 +6,8 @@ package lol.sylvie.sswaystones.gui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -163,5 +165,39 @@ class AccessModeTest {
         assertEquals(AccessMode.SERVER, AccessMode.fromId(" server "));
         assertEquals(AccessMode.PRIVATE, AccessMode.fromId(null));
         assertEquals(AccessMode.PRIVATE, AccessMode.fromId("bogus"));
+    }
+
+    // --- marker head textures (public modes only) ---
+
+    @Test
+    void onlyPubliclyReachableModesForceAMarkerHead() {
+        // Personal modes keep whatever icon the owner chose.
+        assertNull(AccessMode.PRIVATE.headTexture());
+        assertNull(AccessMode.TEAM.headTexture());
+        // Public ones override it with their globe marker.
+        assertEquals(AccessMode.GLOBAL_HEAD_TEXTURE, AccessMode.GLOBAL.headTexture());
+        assertEquals(AccessMode.SERVER_HEAD_TEXTURE, AccessMode.SERVER.headTexture());
+    }
+
+    @Test
+    void globalAndServerUseDistinctHeads() {
+        assertNotEquals(AccessMode.GLOBAL.headTexture(), AccessMode.SERVER.headTexture());
+    }
+
+    /**
+     * The textures are base64 skin blobs pinned to specific minecraft-heads
+     * entries; decoding them guards against a truncated/re-wrapped paste, which
+     * would otherwise only show up in-game as a blank steve head.
+     */
+    @Test
+    void headTexturesDecodeToTheExpectedSkinUrls() {
+        String global = new String(java.util.Base64.getDecoder().decode(AccessMode.GLOBAL_HEAD_TEXTURE),
+                java.nio.charset.StandardCharsets.UTF_8);
+        String server = new String(java.util.Base64.getDecoder().decode(AccessMode.SERVER_HEAD_TEXTURE),
+                java.nio.charset.StandardCharsets.UTF_8);
+        // head #102645
+        assertTrue(global.contains("fc3dd6d8340ecc65b2cb48f34d9514b56f73cc2d15a15aea5c710b976a3c008f"), global);
+        // head #3638
+        assertTrue(server.contains("48a013f04e859488bd47112ff1613fa0fa6298b15ab6ba3ca5cfd1718efc5861"), server);
     }
 }

@@ -103,6 +103,10 @@ public class Configuration {
         @SerializedName("settings_ui")
         @Description(translation = "config.sswaystones.settings_ui")
         public String settingsUi = "sgui";
+
+        @SerializedName("access_mode_icons")
+        @Description(translation = "config.sswaystones.access_mode_icons")
+        public boolean accessModeIcons = true;
     }
 
     /**

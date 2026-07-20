@@ -104,4 +104,37 @@ public enum AccessMode {
             case SERVER -> canServer;
         };
     }
+
+    // ---- Marker head textures -------------------------------------------------
+    // Publicly-reachable waystones get a recognisable globe head so players can
+    // tell them apart at a glance in the viewer, whatever icon the owner picked.
+    // Kept here (Minecraft-free) so the mapping stays unit-testable; the ItemStack
+    // itself is built by AccessIcons.
+
+    /** minecraft-heads.com head #102645 "Globe" — texture fc3dd6d8…, shown on GLOBAL waystones. */
+    public static final String GLOBAL_HEAD_TEXTURE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5t"
+            + "aW5lY3JhZnQubmV0L3RleHR1cmUvZmMzZGQ2ZDgzNDBlY2M2NWIyY2I0OGYzNGQ5NTE0YjU2ZjczY2MyZDE1YTE1YWVhNWM3MTBiOTc2"
+            + "YTNjMDA4ZiJ9fX0=";
+
+    /** minecraft-heads.com head #3638 "Globe" — texture 48a013f0…, shown on SERVER-owned (admin) waystones. */
+    public static final String SERVER_HEAD_TEXTURE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5t"
+            + "aW5lY3JhZnQubmV0L3RleHR1cmUvNDhhMDEzZjA0ZTg1OTQ4OGJkNDcxMTJmZjE2MTNmYTBmYTYyOThiMTVhYjZiYTNjYTVjZmQxNzE4"
+            + "ZWZjNTg2MSJ9fX0=";
+
+    /**
+     * The marker head texture this mode forces, or {@code null} when the mode keeps
+     * whatever icon the owner chose. Only the publicly-reachable modes (GLOBAL and
+     * SERVER) override; PRIVATE and TEAM are personal, so the owner's icon stands.
+     *
+     * <p>The override is applied at render time rather than written into the record,
+     * so demoting a waystone back to private/team restores the owner's original icon
+     * with no stored state and no migration.
+     */
+    public String headTexture() {
+        return switch (this) {
+            case GLOBAL -> GLOBAL_HEAD_TEXTURE;
+            case SERVER -> SERVER_HEAD_TEXTURE;
+            case PRIVATE, TEAM -> null;
+        };
+    }
 }
