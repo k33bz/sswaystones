@@ -2,6 +2,10 @@
 
 ## Unreleased (k33bz fork)
 
+- Waystone list entries in the viewer are now colour-coded by access mode — private (gray),
+  team (aqua), global (green), server (gold) — matching the settings dialog's selector, so a
+  waystone's reach reads at a glance from its hover name.
+
 - **Security:** a non-admin can no longer demote a **server-owned** waystone. The access selector
   now locks a server-owned waystone to "server" for anyone without the admin `create.server`
   permission (previously it always offered Private, letting the nominal owner reclaim it), and
