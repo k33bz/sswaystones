@@ -224,6 +224,30 @@ class AccessModeTest {
         assertFalse(AccessMode.canEdit(false, false, false), "a stranger cannot edit");
     }
 
+    // --- marker-icon vs custom icon ---
+
+    @Test
+    void globalAlwaysWearsTheMarker() {
+        // A GLOBAL waystone shows the globe whether or not the owner set an icon.
+        assertTrue(AccessMode.usesMarkerIcon(AccessMode.GLOBAL, false));
+        assertTrue(AccessMode.usesMarkerIcon(AccessMode.GLOBAL, true));
+    }
+
+    @Test
+    void serverOwnedIsAdminCurated() {
+        // SERVER-owned: a chosen icon (e.g. respawn anchor for spawn) wins; else the admin globe.
+        assertFalse(AccessMode.usesMarkerIcon(AccessMode.SERVER, true), "custom icon wins on a server waystone");
+        assertTrue(AccessMode.usesMarkerIcon(AccessMode.SERVER, false), "no icon -> admin globe");
+    }
+
+    @Test
+    void privateAndTeamNeverUseTheMarker() {
+        for (boolean custom : new boolean[] {true, false}) {
+            assertFalse(AccessMode.usesMarkerIcon(AccessMode.PRIVATE, custom));
+            assertFalse(AccessMode.usesMarkerIcon(AccessMode.TEAM, custom));
+        }
+    }
+
     /**
      * The textures are base64 skin blobs pinned to specific minecraft-heads
      * entries; decoding them guards against a truncated/re-wrapped paste, which

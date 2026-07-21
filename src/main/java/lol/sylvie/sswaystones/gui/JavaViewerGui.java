@@ -135,13 +135,13 @@ public class JavaViewerGui extends SimpleGui {
                         }));
             }
 
-            // Setting menus. When a public marker head overrides the owner's icon (see
-            // AccessMode.headTexture / getIconOrHead), changing the icon would have no
-            // visible effect, so the control is crossed out rather than clickable — the
-            // stored icon still returns if the waystone is later made private/team.
+            // Setting menus. A GLOBAL waystone ALWAYS shows the globe marker, so changing its
+            // icon has no visible effect — cross the control out. SERVER-owned waystones are
+            // admin-curated (a chosen icon wins), so their change-icon stays active. The stored
+            // icon still returns if the waystone is later made private/team.
             WaystoneRecord.AccessSettings acc = waystone.getAccessSettings();
             boolean iconOverridden = Waystones.configuration.getInstance().accessModeIcons
-                    && AccessMode.fromSettings(acc.isServerOwned(), acc.isGlobal(), acc.hasTeam()).headTexture() != null;
+                    && AccessMode.fromSettings(acc.isServerOwned(), acc.isGlobal(), acc.hasTeam()) == AccessMode.GLOBAL;
             if (iconOverridden) {
                 this.setSlot(51, new GuiElementBuilder(waystone.getIconOrHead(player.level().getServer()))
                         .setName(Component.translatable("gui.sswaystones.change_icon")

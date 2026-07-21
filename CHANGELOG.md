@@ -2,6 +2,13 @@
 
 ## Unreleased (k33bz fork)
 
+- Server-owned waystones are now **admin-curated icons**: a chosen icon (e.g. a respawn anchor
+  for the spawn waystone) is shown instead of the admin globe, which now only appears when no
+  icon was set. GLOBAL waystones still always wear the globe (uniform public marking). The
+  change-icon control is only crossed out for GLOBAL now, active for server-owned.
+- New admin command `/waystonesettings icon <hash> <item>` — set a waystone's icon by item id
+  from the console (the curation counterpart to the in-game icon picker).
+
 - **Security:** a server-owned waystone can now only be edited by an admin. Previously its
   nominal owner (a regular player) could still rename it or hide its name — only the access
   mode was locked (k33bz.4). `canPlayerEdit` now returns admin-only for server-owned waystones,
