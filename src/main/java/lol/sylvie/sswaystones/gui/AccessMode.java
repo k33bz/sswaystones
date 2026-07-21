@@ -123,6 +123,21 @@ public enum AccessMode {
         return isOwner || isAdmin;
     }
 
+    /**
+     * Whether a waystone shows its access-mode marker head instead of its own icon.
+     * GLOBAL (player-made public) waystones ALWAYS wear the globe so public destinations are
+     * uniformly obvious. SERVER-owned waystones are admin-curated: a chosen icon wins (e.g. a
+     * respawn anchor for spawn), falling back to the admin globe only when no icon was set.
+     * PRIVATE/TEAM keep the owner's own icon/head. Kept here (Minecraft-free) so it's testable.
+     */
+    public static boolean usesMarkerIcon(AccessMode mode, boolean hasCustomIcon) {
+        return switch (mode) {
+            case GLOBAL -> true;
+            case SERVER -> !hasCustomIcon;
+            case PRIVATE, TEAM -> false;
+        };
+    }
+
     // ---- Marker head textures -------------------------------------------------
     // Publicly-reachable waystones get a recognisable globe head so players can
     // tell them apart at a glance in the viewer, whatever icon the owner picked.

@@ -210,15 +210,17 @@ public final class WaystoneRecord {
     }
 
     public ItemStack getIconOrHead(@Nullable MinecraftServer server) {
-        // Publicly-reachable waystones wear a globe marker head, overriding whatever
-        // icon the owner picked, so public destinations are obvious in the viewer.
-        // Applied here (render time) rather than stored, so demoting back to
-        // private/team restores the owner's original icon for free.
+        // GLOBAL waystones always wear the globe marker; SERVER-owned ones are admin-curated
+        // (a chosen icon wins, e.g. a respawn anchor for spawn, else the admin globe). Applied
+        // at render time, so demoting to private/team restores the owner's original icon.
         if (Waystones.configuration.getInstance().accessModeIcons) {
-            ItemStack marker = AccessIcons.iconFor(AccessMode.fromSettings(accessSettings.isServerOwned(),
-                    accessSettings.isGlobal(), !accessSettings.getTeam().isEmpty()));
-            if (marker != null)
-                return marker;
+            AccessMode mode = AccessMode.fromSettings(accessSettings.isServerOwned(),
+                    accessSettings.isGlobal(), !accessSettings.getTeam().isEmpty());
+            if (AccessMode.usesMarkerIcon(mode, icon != null && icon != Items.PLAYER_HEAD)) {
+                ItemStack marker = AccessIcons.iconFor(mode);
+                if (marker != null)
+                    return marker;
+            }
         }
 
         if (icon != null && icon != Items.PLAYER_HEAD)
