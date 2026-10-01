@@ -245,8 +245,10 @@ def run(s, results, p):
         results.append((name, bool(ok), detail))
         print(f"[{'PASS' if ok else 'FAIL'}] {name} {detail}", flush=True)
 
-    s.send("forceload add -64 -64 400 64")
-    time.sleep(2)
+    # Keep only the areas the checks use loaded (forceload caps one call at 256 chunks).
+    for area in ("0 0 191 47", "288 -16 319 15", "160 160 271 271"):
+        s.send(f"forceload add {area}")
+    time.sleep(3)
 
     # commands: the root command reports this jar's version; list reads the SavedData store
     ok, line = answer(s, "sswaystones", r"sswaystones \S+, made with")
