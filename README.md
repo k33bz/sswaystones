@@ -63,6 +63,10 @@ Fork options:
 - `settings_ui`: `"sgui"` (default) or `"dialog"`.
 - `access_mode_icons`: show the globe on global and server-owned waystones (default `true`).
 
+On a public server, set `waystone_limit` (default `0`, unlimited). Every waystone is saved and listed in each viewer, so one player placing thousands bloats the save and the viewer for everyone. Server-owned waystones don't count toward the limit.
+
+`paranoid_teleport` (default `true`) refuses a teleport when there is no safe spot beside the destination waystone. Teleporting never breaks or places blocks.
+
 ## Permissions
 
 - `sswaystones.manager`: Allows the player to edit and steal *all* waystones. (requires op by default)

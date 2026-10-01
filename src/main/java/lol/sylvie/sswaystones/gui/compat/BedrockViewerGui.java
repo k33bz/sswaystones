@@ -105,7 +105,7 @@ public class BedrockViewerGui {
             int selectedIndex = response.clickedButtonId();
             if (selectedIndex < forgettable.size()) {
                 WaystoneRecord selectedWaystone = forgettable.get(selectedIndex);
-                data.discoveredWaystones.remove(selectedWaystone.getHash());
+                data.forget(selectedWaystone.getHash());
             }
 
             openGui(player, waystone, sendForm);
