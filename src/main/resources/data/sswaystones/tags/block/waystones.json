@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    "sswaystones:waystone",
+    "sswaystones:deepslate_bricks_waystone",
+    "sswaystones:end_stone_bricks_waystone",
+    "sswaystones:mud_bricks_waystone",
+    "sswaystones:nether_bricks_waystone",
+    "sswaystones:polished_blackstone_bricks_waystone",
+    "sswaystones:prismarine_waystone",
+    "sswaystones:red_nether_bricks_waystone",
+    "sswaystones:red_sandstone_waystone",
+    "sswaystones:resin_bricks_waystone",
+    "sswaystones:sandstone_waystone",
+    "sswaystones:tuff_bricks_waystone"
+  ]
+}

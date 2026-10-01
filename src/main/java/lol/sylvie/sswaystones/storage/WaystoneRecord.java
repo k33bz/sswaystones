@@ -19,6 +19,7 @@ import lol.sylvie.sswaystones.gui.AccessMode;
 import lol.sylvie.sswaystones.gui.ViewerUtil;
 import lol.sylvie.sswaystones.util.HashUtil;
 import lol.sylvie.sswaystones.util.SkinCache;
+import lol.sylvie.sswaystones.util.WaystoneNames;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -260,9 +261,9 @@ public final class WaystoneRecord {
         return waystoneName;
     }
 
+    // Every name passes through here, from the anvil, dialog, Bedrock form, command and old saves alike
     public void setWaystoneName(String waystoneName) {
-        waystoneName = waystoneName.substring(0, Math.min(waystoneName.length(), 32));
-        this.waystoneName = waystoneName;
+        this.waystoneName = WaystoneNames.sanitize(waystoneName);
     }
 
     public BlockPos getPos() {
