@@ -246,7 +246,8 @@ def run(s, results, p):
         print(f"[{'PASS' if ok else 'FAIL'}] {name} {detail}", flush=True)
 
     # Keep only the areas the checks use loaded (forceload caps one call at 256 chunks).
-    for area in ("0 0 191 47", "288 -16 319 15", "160 160 271 271"):
+    # The village area is wide: pieces reach ~80 blocks from the start, all of it must be loaded.
+    for area in ("0 0 191 47", "288 -16 319 15", "112 112 287 287"):
         s.send(f"forceload add {area}")
     time.sleep(3)
 
@@ -261,7 +262,7 @@ def run(s, results, p):
     for i, biome in enumerate(VILLAGE_BIOMES):
         x = 40 * i
         ok, line = answer(s, f"place template sswaystones:village/{biome}/waystone {x} -60 20",
-                          r"[Pp]laced|[Ss]uccess", r"[Ff]ailed|not found|Unknown|Invalid|Incorrect|error")
+                          r"Loaded template|[Pp]laced", r"[Ff]ailed|not found|not loaded|Unknown|Invalid|Incorrect|error")
         check(f"templates: {biome} waystone piece places", ok, line[-120:])
 
     # block: a command-placed waystone exists and its block entity ticks cleanly for a while
@@ -274,7 +275,7 @@ def run(s, results, p):
 
     # village: a whole village generates through the injected pools (JigsawPlacerMixin)
     ok, line = answer(s, "place structure minecraft:village_plains 200 -60 200",
-                      r"[Gg]enerated|[Pp]laced", r"[Ff]ailed|Unknown|Invalid|Incorrect|error", timeout=90)
+                      r"[Gg]enerated|[Pp]laced", r"[Ff]ailed|not loaded|Unknown|Invalid|Incorrect|error", timeout=90)
     check("village: plains village generates with waystone pools injected", ok and s.alive(), line[-120:])
 
 
