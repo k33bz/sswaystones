@@ -14,11 +14,6 @@ import com.mojang.serialization.JsonOps;
 import lol.sylvie.sswaystones.storage.WaystoneRecord.AccessSettings;
 import org.junit.jupiter.api.Test;
 
-/**
- * AccessSettings apply/mutate + codec serialize round-trip, including the new
- * hideName field. hide_name must be OPTIONAL (defaulting false) so pre-existing
- * saves without the key still load — the non-breaking guarantee.
- */
 class AccessSettingsTest {
 
     @Test
@@ -60,7 +55,7 @@ class AccessSettingsTest {
 
     @Test
     void legacySaveWithoutHideNameDefaultsToFalse() {
-        // A pre-PR#51 save has global/server/team but NO hide_name key.
+        // Saves from before hide_name have no such key
         JsonObject legacy = new JsonObject();
         legacy.addProperty("global", false);
         legacy.addProperty("server", true);

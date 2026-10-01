@@ -30,18 +30,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-/** Every shipped locale must be complete and format-compatible with en_us. */
+// Every shipped locale must match en_us key for key
 class TranslationsTest {
     private static final Path LANG_DIR = Path.of("src/main/resources/data/sswaystones/lang");
     private static final Path SOURCE_DIR = Path.of("src/main/java");
 
-    // Top-10 game/web languages plus regional variants Minecraft does not fall back
+    // The most played languages, plus regional variants Minecraft doesn't fall back
     // between
     static final List<String> LOCALES = List.of("zh_cn", "zh_tw", "ru_ru", "es_es", "es_mx", "pt_br", "de_de", "ja_jp",
             "fr_fr", "fr_ca", "ko_kr", "pl_pl");
 
-    // Values that may legitimately read the same as English (pure format strings,
-    // loanwords)
+    // Values that legitimately read the same as in English
     private static final Set<String> MAY_MATCH_ENGLISH = Set.of("command.sswaystones.config_format",
             "gui.sswaystones.toggle_global", "gui.sswaystones.access_global", "gui.sswaystones.access_team");
 
@@ -128,8 +127,7 @@ class TranslationsTest {
         return found;
     }
 
-    // Strict UTF-8 + duplicate-key detection (Gson's object parsing silently keeps
-    // the last duplicate)
+    // Strict UTF-8, and duplicate keys fail (Gson would keep the last one)
     private static Map<String, String> load(String locale) throws IOException {
         Path file = LANG_DIR.resolve(locale + ".json");
         assertTrue(Files.exists(file), "missing lang file " + file);

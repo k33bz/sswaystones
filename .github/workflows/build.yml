@@ -22,11 +22,8 @@ jobs:
           MC=$(grep -E '^minecraft_version=' gradle.properties | cut -d= -f2)
           echo "MC_VERSION=$MC" >> "$GITHUB_ENV"
           echo "### sswaystones on Minecraft $MC (\`$GITHUB_REF_NAME\`)" >> "$GITHUB_STEP_SUMMARY"
-      # Compile + unit tests + jar. spotless is intentionally EXCLUDED here: its
-      # eclipse() JDT formatter is fetched at build time from download.eclipse.org,
-      # whose p2 index is an external SPOF that intermittently 500s and would then
-      # block an otherwise-green build. Formatting is still verified below in a
-      # non-fatal step so it's visible when the endpoint is up.
+      # spotless is skipped here: its eclipse formatter comes from download.eclipse.org,
+      # which 500s now and then. It runs below as a non-fatal step instead.
       - name: Build + tests
         run: ./gradlew build -x spotlessJava -x spotlessCheck -x spotlessMisc
       - name: Test summary
@@ -51,7 +48,7 @@ jobs:
           name: test-reports-${{ env.MC_VERSION }}
           path: build/reports/tests/test
           if-no-files-found: ignore
-      - name: Spotless check (non-fatal — eclipse formatter is an external SPOF)
+      - name: Spotless check (non-fatal)
         continue-on-error: true
         run: ./gradlew spotlessCheck
       - name: Artifact slug

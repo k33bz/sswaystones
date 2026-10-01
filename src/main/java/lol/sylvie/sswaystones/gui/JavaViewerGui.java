@@ -13,10 +13,12 @@ import lol.sylvie.sswaystones.Waystones;
 import lol.sylvie.sswaystones.storage.PlayerData;
 import lol.sylvie.sswaystones.storage.WaystoneRecord;
 import lol.sylvie.sswaystones.storage.WaystoneStorage;
+import lol.sylvie.sswaystones.util.WaystoneColors;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.inventory.ContainerInput;
@@ -66,15 +68,9 @@ public class JavaViewerGui extends SimpleGui {
             if (slot >= 45)
                 break;
 
-            // Colour the entry's hover-name by its reach: a team waystone in its real team
-            // colour (matching the in-world hologram), else the access-mode palette.
-            net.minecraft.network.chat.MutableComponent entryName = record.getWaystoneText().copy();
-            net.minecraft.network.chat.TextColor entryColor = lol.sylvie.sswaystones.util.WaystoneColors
-                    .nameColor(record, player.level().getScoreboard());
-            if (entryColor != null)
-                entryName.withStyle(style -> style.withColor(entryColor));
+            TextColor nameColor = WaystoneColors.nameColor(record, player.level().getScoreboard());
             GuiElementBuilder element = new GuiElementBuilder(record.getIconOrHead(player.level().getServer()))
-                    .setName(entryName);
+                    .setName(record.getWaystoneText().copy().withStyle(style -> style.withColor(nameColor)));
 
             List<Component> lore = new ArrayList<>();
             if (!record.getAccessSettings().isServerOwned())
@@ -135,52 +131,46 @@ public class JavaViewerGui extends SimpleGui {
                         }));
             }
 
-            // Setting menus. A GLOBAL waystone ALWAYS shows the globe marker, so changing its
-            // icon has no visible effect — cross the control out. SERVER-owned waystones are
-            // admin-curated (a chosen icon wins), so their change-icon stays active. The stored
-            // icon still returns if the waystone is later made private/team.
+            // Setting menus. A global waystone always shows the globe, so no icon change
             WaystoneRecord.AccessSettings acc = waystone.getAccessSettings();
             boolean iconOverridden = Waystones.configuration.getInstance().accessModeIcons
                     && AccessMode.fromSettings(acc.isServerOwned(), acc.isGlobal(), acc.hasTeam()) == AccessMode.GLOBAL;
             if (iconOverridden) {
-                this.setSlot(51, new GuiElementBuilder(waystone.getIconOrHead(player.level().getServer()))
-                        .setName(Component.translatable("gui.sswaystones.change_icon")
-                                .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.STRIKETHROUGH))
-                        .setLore(List.of(Component.translatable("gui.sswaystones.icon_overridden")
-                                .withStyle(ChatFormatting.GRAY)))
-                        .setCallback((index, type, action, gui) -> {
-                        }));
+                this.setSlot(51,
+                        new GuiElementBuilder(waystone.getIconOrHead(player.level().getServer()))
+                                .setName(Component.translatable("gui.sswaystones.change_icon")
+                                        .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.STRIKETHROUGH))
+                                .setLore(List.of(Component.translatable("gui.sswaystones.icon_overridden")
+                                        .withStyle(ChatFormatting.GRAY)))
+                                .setCallback((index, type, action, gui) -> {
+                                }));
             } else {
                 this.setSlot(51, new GuiElementBuilder(waystone.getIconOrHead(player.level().getServer()))
                         .setName(Component.translatable("gui.sswaystones.change_icon").withStyle(ChatFormatting.YELLOW))
                         .glow().setCallback((index, type, action, gui) -> new IconGui(waystone, player).open()));
             }
 
-            boolean dialogMode = Waystones.configuration.useDialogUi();
-
-            this.setSlot(52,
-                    new GuiElementBuilder(Items.NAME_TAG).setName(
-                            Component.translatable("gui.sswaystones.change_name").withStyle(ChatFormatting.YELLOW))
-                            .setCallback((index, type, action, gui) -> {
-                                if (dialogMode) {
-                                    gui.close();
-                                    SettingsDialog.open(player, waystone);
-                                } else {
-                                    new NameGui(waystone, player).open();
-                                }
-                            }));
+            this.setSlot(52, new GuiElementBuilder(Items.NAME_TAG)
+                    .setName(Component.translatable("gui.sswaystones.change_name").withStyle(ChatFormatting.YELLOW))
+                    .setCallback(
+                            (index, type, action, gui) -> openSettings(() -> new NameGui(waystone, player).open())));
 
             this.setSlot(53,
-                    new GuiElementBuilder(Items.CARTOGRAPHY_TABLE).setName(Component
-                            .translatable("gui.sswaystones.access_settings").withStyle(ChatFormatting.LIGHT_PURPLE))
-                            .setCallback((index, type, action, gui) -> {
-                                if (dialogMode) {
-                                    gui.close();
-                                    SettingsDialog.open(player, waystone);
-                                } else {
-                                    new AccessSettingsGui(waystone, player).open();
-                                }
-                            }));
+                    new GuiElementBuilder(Items.CARTOGRAPHY_TABLE)
+                            .setName(Component.translatable("gui.sswaystones.access_settings")
+                                    .withStyle(ChatFormatting.LIGHT_PURPLE))
+                            .setCallback((index, type, action,
+                                    gui) -> openSettings(() -> new AccessSettingsGui(waystone, player).open())));
+        }
+    }
+
+    // In dialog mode every settings button opens the one dialog
+    private void openSettings(Runnable sgui) {
+        if (Waystones.configuration.useDialogUi()) {
+            this.close();
+            SettingsDialog.open(player, waystone);
+        } else {
+            sgui.run();
         }
     }
 
