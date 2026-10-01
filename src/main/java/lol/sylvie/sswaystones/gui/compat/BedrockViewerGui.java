@@ -121,10 +121,10 @@ public class BedrockViewerGui {
         builder.input("Waystone Name", NameGenerator.generateName(), waystone.getWaystoneName());
 
         // One access dropdown, same modes as the Java dialog
-        ViewerUtil.AccessPermissions perms = ViewerUtil.AccessPermissions.of(player);
+        AccessMode.Permissions perms = ViewerUtil.permissions(player);
         AccessMode currentMode = AccessMode.fromSettings(accessSettings.isServerOwned(), accessSettings.isGlobal(),
                 accessSettings.hasTeam());
-        List<AccessMode> modes = AccessMode.availableModes(currentMode, perms.team(), perms.global(), perms.server());
+        List<AccessMode> modes = AccessMode.availableModes(currentMode, perms);
         List<String> modeLabels = new ArrayList<>();
         for (AccessMode m : modes)
             modeLabels.add(bedrockModeLabel(m));
@@ -142,7 +142,7 @@ public class BedrockViewerGui {
             int selected = response.asDropdown(1);
             if (selected >= 0 && selected < modes.size()) {
                 AccessMode mode = modes.get(selected);
-                if (mode.isAllowed(perms.team(), perms.global(), perms.server())) {
+                if (mode.isAllowed(perms)) {
                     accessSettings.setGlobal(mode.global());
                     accessSettings.setServerOwned(mode.serverOwned());
                     accessSettings.setTeam(mode.team(player.getTeam() != null ? player.getTeam().getName() : ""));
