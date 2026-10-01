@@ -300,6 +300,15 @@ public class WaystonesCommand {
             return 0;
         }
 
+        // The settings dialog is only ever opened at the waystone. apply used to reopen the viewer wherever the
+        // player stood, so anyone who knew one of their waystone hashes had a free portable waystone. Away from the
+        // waystone, only managers may apply, and the viewer is never opened remotely
+        boolean atWaystone = isAtWaystone(player, waystone);
+        if (!atWaystone && !Permissions.check(player, "sswaystones.manager", PermissionLevel.ADMINS)) {
+            player.sendSystemMessage(Component.translatable("error.sswaystones.too_far").withStyle(ChatFormatting.RED));
+            return 0;
+        }
+
         WaystoneRecord.AccessSettings access = waystone.getAccessSettings();
 
         // Old values, to skip no-op saves and to log access changes
@@ -340,7 +349,8 @@ public class WaystonesCommand {
         boolean unchanged = newGlobal == beforeGlobal && newServer == beforeServer && newTeam.equals(beforeTeam)
                 && newHidden == beforeHidden && newName.equals(beforeName);
         if (unchanged) {
-            ViewerUtil.openGui(player, waystone);
+            if (atWaystone)
+                ViewerUtil.openGui(player, waystone);
             return 1;
         }
 
@@ -361,8 +371,15 @@ public class WaystonesCommand {
         access.setTeam(newTeam);
         access.setNameHidden(newHidden);
 
-        ViewerUtil.openGui(player, waystone);
+        if (atWaystone)
+            ViewerUtil.openGui(player, waystone);
         return 1;
+    }
+
+    // Same dimension and within reach, plus a few blocks of slack for walking while the dialog was open
+    private static boolean isAtWaystone(ServerPlayer player, WaystoneRecord waystone) {
+        return player.level().dimension().equals(waystone.getWorldKey())
+                && player.isWithinBlockInteractionRange(waystone.getPos(), 4.0);
     }
 
     // Returns Map of String -> Description
