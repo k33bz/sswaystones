@@ -13,6 +13,7 @@ import lol.sylvie.sswaystones.storage.PlayerData;
 import lol.sylvie.sswaystones.storage.WaystoneRecord;
 import lol.sylvie.sswaystones.storage.WaystoneStorage;
 import lol.sylvie.sswaystones.util.NameGenerator;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import org.geysermc.cumulus.component.ButtonComponent;
 import org.geysermc.cumulus.form.CustomForm;
@@ -62,7 +63,7 @@ public class BedrockViewerGui {
 
         builder.button("Forget Waystones", FormImage.Type.PATH, "textures/ui/icon_trash.png");
 
-        builder.validResultHandler(response -> {
+        builder.validResultHandler(response -> onServerThread(player, () -> {
             int selectedIndex = response.clickedButtonId();
             if (selectedIndex < accessible.size()) {
                 WaystoneRecord selectedWaystone = accessible.get(selectedIndex);
@@ -79,7 +80,7 @@ public class BedrockViewerGui {
                 SimpleForm form = getDeleteForm(player, waystone, sendForm);
                 sendForm.accept(form);
             }
-        });
+        }));
 
         return builder.build();
     }
@@ -100,7 +101,7 @@ public class BedrockViewerGui {
 
         builder.button("Back", FormImage.Type.PATH, "textures/ui/cancel.png");
 
-        builder.validResultHandler(response -> {
+        builder.validResultHandler(response -> onServerThread(player, () -> {
             int selectedIndex = response.clickedButtonId();
             if (selectedIndex < forgettable.size()) {
                 WaystoneRecord selectedWaystone = forgettable.get(selectedIndex);
@@ -108,7 +109,7 @@ public class BedrockViewerGui {
             }
 
             openGui(player, waystone, sendForm);
-        });
+        }));
 
         return builder.build();
     }
@@ -133,9 +134,13 @@ public class BedrockViewerGui {
 
         builder.toggle("Hide Name", accessSettings.isNameHidden());
 
-        builder.validResultHandler(response -> {
+        builder.validResultHandler(response -> onServerThread(player, () -> {
             String name = response.asInput(0);
             if (name == null)
+                return;
+
+            // The form may have been open a while; an admin could have taken the waystone over since
+            if (!waystone.canPlayerEdit(player))
                 return;
 
             // 0 = name, 1 = access, 2 = hide name
@@ -153,9 +158,19 @@ public class BedrockViewerGui {
             accessSettings.setNameHidden(hideName);
 
             waystone.setWaystoneName(name);
-        });
+        }));
 
         return builder.build();
+    }
+
+    // Floodgate delivers form responses off the server thread. Waystone data, player data and the world are only
+    // safe to touch from the server thread, so every response handler hops there first
+    private static void onServerThread(ServerPlayer player, Runnable task) {
+        MinecraftServer server = player.level().getServer();
+        if (server.isSameThread())
+            task.run();
+        else
+            server.execute(task);
     }
 
     private static String bedrockModeLabel(AccessMode mode) {
