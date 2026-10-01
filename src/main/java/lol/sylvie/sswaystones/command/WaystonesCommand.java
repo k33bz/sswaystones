@@ -315,13 +315,13 @@ public class WaystonesCommand {
         boolean newServer = beforeServer;
         String newTeam = beforeTeam;
 
-        ViewerUtil.AccessPermissions perms = ViewerUtil.AccessPermissions.of(player);
+        AccessMode.Permissions perms = ViewerUtil.permissions(player);
 
         if (args.accessMode().isPresent()) {
             AccessMode mode = args.accessMode().get();
             // Leaving server-owned needs the same permission as setting it
             boolean leavingServer = beforeServer && mode != AccessMode.SERVER;
-            if (mode.isAllowed(perms.team(), perms.global(), perms.server()) && (!leavingServer || perms.server())) {
+            if (mode.isAllowed(perms) && (!leavingServer || perms.server())) {
                 newGlobal = mode.global();
                 newServer = mode.serverOwned();
                 newTeam = mode.team(player.getTeam() != null ? player.getTeam().getName() : "");

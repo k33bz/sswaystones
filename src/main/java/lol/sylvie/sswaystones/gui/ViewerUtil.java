@@ -20,14 +20,11 @@ import org.jetbrains.annotations.Nullable;
 public class ViewerUtil {
     public static HashSet<UUID> mayAccessAll = new HashSet<>();
 
-    // Which access levels the player may set
-    public record AccessPermissions(boolean team, boolean global, boolean server) {
-        public static AccessPermissions of(ServerPlayer player) {
-            return new AccessPermissions(
-                    player.getTeam() != null && Permissions.check(player, "sswaystones.create.team", true),
-                    Permissions.check(player, "sswaystones.create.global", true),
-                    Permissions.check(player, "sswaystones.create.server", PermissionLevel.ADMINS));
-        }
+    public static AccessMode.Permissions permissions(ServerPlayer player) {
+        return new AccessMode.Permissions(
+                player.getTeam() != null && Permissions.check(player, "sswaystones.create.team", true),
+                Permissions.check(player, "sswaystones.create.global", true),
+                Permissions.check(player, "sswaystones.create.server", PermissionLevel.ADMINS));
     }
 
     public static void openGui(ServerPlayer player, @Nullable WaystoneRecord record) {

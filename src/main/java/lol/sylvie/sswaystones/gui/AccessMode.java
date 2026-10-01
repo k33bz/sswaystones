@@ -22,6 +22,10 @@ public enum AccessMode {
             + "aW5lY3JhZnQubmV0L3RleHR1cmUvNDhhMDEzZjA0ZTg1OTQ4OGJkNDcxMTJmZjE2MTNmYTBmYTYyOThiMTVhYjZiYTNjYTVjZmQxNzE4"
             + "ZWZjNTg2MSJ9fX0=";
 
+    // What the player may set
+    public record Permissions(boolean team, boolean global, boolean server) {
+    }
+
     private final String id;
 
     AccessMode(String id) {
@@ -66,27 +70,26 @@ public enum AccessMode {
 
     // The current mode is always offered so a re-save can't downgrade it. A
     // server-owned waystone stays locked for anyone who couldn't set server.
-    public static List<AccessMode> availableModes(AccessMode current, boolean canTeam, boolean canGlobal,
-            boolean canServer) {
-        if (current == SERVER && !canServer)
+    public static List<AccessMode> availableModes(AccessMode current, Permissions perms) {
+        if (current == SERVER && !perms.server())
             return List.of(SERVER);
         List<AccessMode> modes = new ArrayList<>();
         modes.add(PRIVATE);
-        if (canTeam || current == TEAM)
+        if (perms.team() || current == TEAM)
             modes.add(TEAM);
-        if (canGlobal || current == GLOBAL)
+        if (perms.global() || current == GLOBAL)
             modes.add(GLOBAL);
-        if (canServer || current == SERVER)
+        if (perms.server() || current == SERVER)
             modes.add(SERVER);
         return modes;
     }
 
-    public boolean isAllowed(boolean canTeam, boolean canGlobal, boolean canServer) {
+    public boolean isAllowed(Permissions perms) {
         return switch (this) {
             case PRIVATE -> true;
-            case TEAM -> canTeam;
-            case GLOBAL -> canGlobal;
-            case SERVER -> canServer;
+            case TEAM -> perms.team();
+            case GLOBAL -> perms.global();
+            case SERVER -> perms.server();
         };
     }
 
