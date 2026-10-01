@@ -205,8 +205,8 @@ public class WaystonesCommand {
                 .then(literal("get")
                         .requires(source -> Permissions.check(source, "sswaystones.manager", PermissionLevel.ADMINS))
                         .then(argument("hash", StringArgumentType.word()).executes(WaystonesCommand::testGet)))
-                // Admin: set a waystone's icon by item id (e.g. minecraft:respawn_anchor for the
-                // spawn waystone) — the console/curation counterpart to the in-game IconGui.
+                // Admin: set a waystone's icon by item id (e.g. minecraft:respawn_anchor
+                // for the spawn waystone); the console counterpart to the in-game IconGui.
                 .then(literal("icon")
                         .requires(source -> Permissions.check(source, "sswaystones.manager", PermissionLevel.ADMINS))
                         .then(argument("hash", StringArgumentType.word())
@@ -214,8 +214,8 @@ public class WaystonesCommand {
                                         .executes(WaystonesCommand::setIcon)))));
     }
 
-    // Admin: set a waystone's icon by item id. Persists via WaystoneStorage (setDirty on
-    // setIcon), and the in-world hologram + viewer pick it up on the next render.
+    // Admin: set a waystone's icon by item id. Persists via WaystoneStorage
+    // (setDirty on setIcon); the hologram + viewer pick it up on the next render.
     private static int setIcon(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         WaystoneStorage storage = WaystoneStorage.getServerState(context.getSource().getServer());
         WaystoneRecord record = storage.getWaystone(StringArgumentType.getString(context, "hash"));
@@ -228,18 +228,18 @@ public class WaystonesCommand {
         try {
             id = net.minecraft.resources.Identifier.parse(itemId);
         } catch (net.minecraft.IdentifierException e) {
-            context.getSource().sendFailure(Component.literal("Not a valid item id: " + itemId));
+            context.getSource().sendFailure(Component.translatable("command.sswaystones.icon_invalid_id", itemId));
             return 0;
         }
         net.minecraft.world.item.Item item = net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(id);
         if (item == net.minecraft.world.item.Items.AIR) {
-            context.getSource().sendFailure(Component.literal("No such item: " + itemId));
+            context.getSource().sendFailure(Component.translatable("command.sswaystones.icon_no_such_item", itemId));
             return 0;
         }
         record.setIcon(item);
         storage.setDirty();
-        context.getSource().sendSuccess(() -> Component.literal(
-                "Icon of " + record.getWaystoneName() + " set to " + itemId), true);
+        context.getSource().sendSuccess(
+                () -> Component.translatable("command.sswaystones.icon_set", record.getWaystoneName(), itemId), true);
         return 1;
     }
 
@@ -326,7 +326,8 @@ public class WaystonesCommand {
             AccessMode mode = args.accessMode().get();
             // Moving a waystone OUT of server-owned is itself an admin action (parity with
             // setting it) — otherwise a non-admin owner could reclaim a server waystone by
-            // picking private/global. The UI hides these options; this is the server-side gate.
+            // picking private/global. The UI hides these options; this is the
+            // server-side gate.
             boolean leavingServer = beforeServer && mode != AccessMode.SERVER;
             if (mode.isAllowed(canTeam, canGlobal, canServer) && (!leavingServer || canServer)) {
                 newGlobal = mode.global();
