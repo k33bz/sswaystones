@@ -11,13 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import lol.sylvie.sswaystones.gui.AccessMode;
 import org.junit.jupiter.api.Test;
 
-/**
- * Parser guards for the {@code /waystonesettings apply} tail. The tricky cases
- * — a name containing a colon, the {@code "-"} leave-unchanged sentinel, and
- * {@code access:} taking precedence over the legacy per-field tokens — are
- * locked down here so a regression fails fast rather than silently mangling a
- * name or fighting itself over access.
- */
 class ApplyArgsTest {
 
     @Test
@@ -29,12 +22,11 @@ class ApplyArgsTest {
         assertEquals(AccessMode.GLOBAL, a.accessMode().orElse(null));
     }
 
-    // --- the colon-in-name fix ---
+    // Names with colons
 
     @Test
     void nameMayContainColonsAndSpaces() {
-        // "Base: north" would previously truncate at the ": " — now name is greedy to
-        // end of string.
+        // "Base: north" used to be cut at the colon
         ApplyArgs a = ApplyArgs.parse("h1 access:private hidename:- name:Base: north");
         assertEquals("Base: north", a.newName().orElse(null));
         assertEquals(AccessMode.PRIVATE, a.accessMode().orElse(null));
@@ -42,7 +34,7 @@ class ApplyArgsTest {
 
     @Test
     void nameCanEvenLookLikeKeyTokens() {
-        // free text after name: is verbatim, even if it contains "global:" etc.
+        // everything after name: is taken as is
         ApplyArgs a = ApplyArgs.parse("h1 access:team name:global:true server:yes");
         assertEquals("global:true server:yes", a.newName().orElse(null));
         assertEquals(AccessMode.TEAM, a.accessMode().orElse(null));
@@ -54,7 +46,7 @@ class ApplyArgsTest {
         assertEquals("", a.newName().orElse("MISSING")); // present but empty
     }
 
-    // --- sentinel / missing handling ---
+    // "-" and missing tokens
 
     @Test
     void dashSentinelMeansLeaveUnchanged() {
@@ -81,13 +73,13 @@ class ApplyArgsTest {
         assertTrue(ApplyArgs.parse("h hidename:on").hideName().orElse(false));
     }
 
-    // --- access: precedence over legacy per-field tokens ---
+    // access: wins over the per-field flags
 
     @Test
     void accessWinsAndSuppressesLegacyFields() {
         ApplyArgs a = ApplyArgs.parse("h1 global:true team:true server:true access:private name:x");
         assertEquals(AccessMode.PRIVATE, a.accessMode().orElse(null));
-        // legacy fields are IGNORED when access: is present — no apply-then-override
+        // the flags are dropped, not applied first
         assertTrue(a.global().isEmpty(), "global suppressed by access:");
         assertTrue(a.team().isEmpty(), "team suppressed by access:");
         assertTrue(a.server().isEmpty(), "server suppressed by access:");
@@ -113,9 +105,7 @@ class ApplyArgsTest {
 
     @Test
     void whitespaceIsTolerated() {
-        // the whole tail is trimmed once up front, so surrounding whitespace is
-        // stripped; interior
-        // single spaces in the name are preserved verbatim.
+        // the tail is trimmed once; spaces inside the name stay
         ApplyArgs a = ApplyArgs.parse("   h1    access:global    hidename:true    name:Trimmed Name  ");
         assertEquals("h1", a.hash());
         assertEquals(AccessMode.GLOBAL, a.accessMode().orElse(null));

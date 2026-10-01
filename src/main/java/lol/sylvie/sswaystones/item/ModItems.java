@@ -48,8 +48,8 @@ public class ModItems {
 
     public static final Item PORTABLE_WAYSTONE = register(
             new PortableWaystoneItem(
-                    new Item.Properties().setId(PortableWaystoneItem.KEY).rarity(Rarity.EPIC).stacksTo(1).component(
-                            DataComponents.SWING_ANIMATION, new SwingAnimation(SwingAnimationType.NONE, 6))),
+                    new Item.Properties().setId(PortableWaystoneItem.KEY).rarity(Rarity.EPIC).stacksTo(1)
+                            .component(DataComponents.SWING_ANIMATION, new SwingAnimation(SwingAnimationType.NONE, 6))),
             PortableWaystoneItem.ID);
 
     public static final CreativeModeTab ITEM_GROUP = PolymerCreativeModeTabUtils.builder()

@@ -210,12 +210,10 @@ public final class WaystoneRecord {
     }
 
     public ItemStack getIconOrHead(@Nullable MinecraftServer server) {
-        // GLOBAL waystones always wear the globe marker; SERVER-owned ones are admin-curated
-        // (a chosen icon wins, e.g. a respawn anchor for spawn, else the admin globe). Applied
-        // at render time, so demoting to private/team restores the owner's original icon.
+        // Public waystones wear a globe instead of the owner's icon
         if (Waystones.configuration.getInstance().accessModeIcons) {
-            AccessMode mode = AccessMode.fromSettings(accessSettings.isServerOwned(),
-                    accessSettings.isGlobal(), !accessSettings.getTeam().isEmpty());
+            AccessMode mode = AccessMode.fromSettings(accessSettings.isServerOwned(), accessSettings.isGlobal(),
+                    !accessSettings.getTeam().isEmpty());
             if (AccessMode.usesMarkerIcon(mode, icon != null && icon != Items.PLAYER_HEAD)) {
                 ItemStack marker = AccessIcons.iconFor(mode);
                 if (marker != null)
@@ -291,7 +289,7 @@ public final class WaystoneRecord {
         private String team; // Scoreboard team
         private boolean hideName; // Hides the floating name hologram
 
-        // hide_name is optional so existing saves deserialize unchanged
+        // Optional so older saves still load
         public static final Codec<AccessSettings> CODEC = RecordCodecBuilder.create(instance -> instance
                 .group(Codec.BOOL.fieldOf("global").forGetter(AccessSettings::isGlobal),
                         Codec.BOOL.fieldOf("server").forGetter(AccessSettings::isServerOwned),

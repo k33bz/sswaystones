@@ -10,11 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-/**
- * The {@code settings_ui} flag: only an explicit, case-insensitive "dialog"
- * opts into the dialog UI; everything else (null, empty, typos, the default)
- * stays sgui.
- */
 class SettingsUiTest {
 
     @Test

@@ -12,19 +12,11 @@ import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * One place for the colours a waystone is shown in, so the settings-dialog selector,
- * the viewer list, and the in-world hologram all agree.
- *
- * <p>The access-mode palette (private/team/global/server) is the generic fallback; a
- * <em>team</em> waystone additionally resolves to its team's actual colour, so a waystone
- * named in the list matches the teal/red/etc. it floats in the world.
- */
+// Shared by the dialog selector, the viewer list and the hologram
 public final class WaystoneColors {
     private WaystoneColors() {
     }
 
-    /** The generic colour for an access mode — used by the dialog selector and as the fallback. */
     public static ChatFormatting modeColor(AccessMode mode) {
         return switch (mode) {
             case PRIVATE -> ChatFormatting.GRAY;
@@ -34,12 +26,8 @@ public final class WaystoneColors {
         };
     }
 
-    /**
-     * The RGB a waystone's <em>name</em> is drawn in: a team waystone's real team colour
-     * (matching the in-world hologram), otherwise the access-mode palette. Returns null only
-     * if the palette entry has no colour (never, for the four modes above).
-     */
-    public static @Nullable TextColor nameColor(WaystoneRecord record, @Nullable Scoreboard scoreboard) {
+    // A team waystone takes its team's colour, everything else the mode colour
+    public static TextColor nameColor(WaystoneRecord record, @Nullable Scoreboard scoreboard) {
         WaystoneRecord.AccessSettings access = record.getAccessSettings();
         AccessMode mode = AccessMode.fromSettings(access.isServerOwned(), access.isGlobal(), access.hasTeam());
         if (mode == AccessMode.TEAM && scoreboard != null) {
@@ -53,7 +41,6 @@ public final class WaystoneColors {
         return TextColor.fromLegacyFormat(modeColor(mode));
     }
 
-    // Branch-specific: on 26.2 a team's colour is Optional<TeamColor> (26.1 = ChatFormatting).
     private static @Nullable TextColor teamColor(PlayerTeam team) {
         return team.getColor().map(c -> TextColor.fromRgb(c.rgb())).orElse(null);
     }
