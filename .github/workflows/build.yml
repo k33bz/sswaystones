@@ -1,5 +1,6 @@
 name: build
 
+# One pipeline per supported Minecraft line: main = newest (26.3), 26.x branches = backports.
 on:
   push:
     branches: [main, '26.*']
@@ -16,6 +17,11 @@ jobs:
           distribution: temurin
           java-version: 25
           cache: gradle
+      - name: Minecraft version
+        run: |
+          MC=$(grep -E '^minecraft_version=' gradle.properties | cut -d= -f2)
+          echo "MC_VERSION=$MC" >> "$GITHUB_ENV"
+          echo "### sswaystones on Minecraft $MC (\`$GITHUB_REF_NAME\`)" >> "$GITHUB_STEP_SUMMARY"
       # Compile + unit tests + jar. spotless is intentionally EXCLUDED here: its
       # eclipse() JDT formatter is fetched at build time from download.eclipse.org,
       # whose p2 index is an external SPOF that intermittently 500s and would then
@@ -23,6 +29,28 @@ jobs:
       # non-fatal step so it's visible when the endpoint is up.
       - name: Build + tests
         run: ./gradlew build -x spotlessJava -x spotlessCheck -x spotlessMisc
+      - name: Test summary
+        if: always()
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          import glob, re, sys
+          t = f = e = s = 0
+          for p in glob.glob('build/test-results/test/*.xml'):
+              head = open(p, encoding='utf-8').read(4096)
+              m = re.search(r'tests="(\d+)" skipped="(\d+)" failures="(\d+)" errors="(\d+)"', head)
+              t += int(m[1]); s += int(m[2]); f += int(m[3]); e += int(m[4])
+          print(f"Unit tests: **{t}** run, {f} failed, {e} errors, {s} skipped")
+          if t == 0:
+              print("::error::no unit tests ran", file=sys.stderr)
+              sys.exit(1)
+          EOF
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-reports-${{ env.MC_VERSION }}
+          path: build/reports/tests/test
+          if-no-files-found: ignore
       - name: Spotless check (non-fatal — eclipse formatter is an external SPOF)
         continue-on-error: true
         run: ./gradlew spotlessCheck
@@ -31,5 +59,5 @@ jobs:
       - name: Upload jar
         uses: actions/upload-artifact@v7
         with:
-          name: sswaystones-${{ env.ARTIFACT_SLUG }}
+          name: sswaystones-${{ env.MC_VERSION }}-${{ env.ARTIFACT_SLUG }}
           path: build/libs/*.jar
