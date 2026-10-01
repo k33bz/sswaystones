@@ -290,11 +290,9 @@ public class WaystonesCommand {
 
         WaystoneStorage storage = WaystoneStorage.getServerState(context.getSource().getServer());
         WaystoneRecord waystone = storage.getWaystone(args.hash());
-        if (waystone == null) {
-            throw new CommandSyntaxException(CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument(),
-                    Component.translatable("command.sswaystones.waystone_not_found"));
-        }
-        if (!waystone.canPlayerEdit(player)) {
+        // A hash is just the SHA-256 of a position, so anyone can compute one. Unknown and not-yours get the same
+        // answer, or this command would tell a player whether a hidden waystone stands at any coordinates they try
+        if (waystone == null || !waystone.canPlayerEdit(player)) {
             player.sendSystemMessage(Component.translatable("error.sswaystones.no_modification_permission")
                     .withStyle(ChatFormatting.RED));
             return 0;
