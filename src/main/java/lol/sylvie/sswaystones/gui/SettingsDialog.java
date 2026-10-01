@@ -42,14 +42,14 @@ public final class SettingsDialog {
 
     public static void open(ServerPlayer player, WaystoneRecord waystone) {
         WaystoneRecord.AccessSettings access = waystone.getAccessSettings();
-        ViewerUtil.AccessPermissions perms = ViewerUtil.AccessPermissions.of(player);
+        AccessMode.Permissions perms = ViewerUtil.permissions(player);
 
         List<DialogBody> body = List.of(new PlainMessage(
                 Component.translatable("gui.sswaystones.dialog_access_help").withStyle(ChatFormatting.GRAY), 200));
 
         AccessMode currentMode = AccessMode.fromSettings(access.isServerOwned(), access.isGlobal(), access.hasTeam());
         List<SingleOptionInput.Entry> accessEntries = new ArrayList<>();
-        for (AccessMode mode : AccessMode.availableModes(currentMode, perms.team(), perms.global(), perms.server()))
+        for (AccessMode mode : AccessMode.availableModes(currentMode, perms))
             accessEntries.add(entry(mode.id(), modeLabel(mode), WaystoneColors.modeColor(mode), mode == currentMode));
 
         List<Input> inputs = new ArrayList<>();

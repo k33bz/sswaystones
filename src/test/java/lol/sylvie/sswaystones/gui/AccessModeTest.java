@@ -14,6 +14,9 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class AccessModeTest {
+    private static AccessMode.Permissions perms(boolean team, boolean global, boolean server) {
+        return new AccessMode.Permissions(team, global, server);
+    }
 
     // Mode to fields
 
@@ -90,30 +93,30 @@ class AccessModeTest {
 
     @Test
     void privateAlwaysOffered() {
-        List<AccessMode> modes = AccessMode.availableModes(AccessMode.PRIVATE, false, false, false);
+        List<AccessMode> modes = AccessMode.availableModes(AccessMode.PRIVATE, perms(false, false, false));
         assertEquals(List.of(AccessMode.PRIVATE), modes);
     }
 
     @Test
     void serverOptionOnlyForAdmins() {
         // not an admin, not currently server-owned
-        List<AccessMode> nonAdmin = AccessMode.availableModes(AccessMode.PRIVATE, true, true, false);
+        List<AccessMode> nonAdmin = AccessMode.availableModes(AccessMode.PRIVATE, perms(true, true, false));
         assertFalse(nonAdmin.contains(AccessMode.SERVER), "non-admin must not get the server option");
         assertTrue(nonAdmin.contains(AccessMode.GLOBAL));
         assertTrue(nonAdmin.contains(AccessMode.TEAM));
 
         // admin
-        List<AccessMode> admin = AccessMode.availableModes(AccessMode.PRIVATE, true, true, true);
+        List<AccessMode> admin = AccessMode.availableModes(AccessMode.PRIVATE, perms(true, true, true));
         assertTrue(admin.contains(AccessMode.SERVER), "admin gets the server option");
     }
 
     @Test
     void teamAndGlobalGatedByTheirPerms() {
-        List<AccessMode> none = AccessMode.availableModes(AccessMode.PRIVATE, false, false, false);
+        List<AccessMode> none = AccessMode.availableModes(AccessMode.PRIVATE, perms(false, false, false));
         assertFalse(none.contains(AccessMode.TEAM));
         assertFalse(none.contains(AccessMode.GLOBAL));
 
-        List<AccessMode> teamOnly = AccessMode.availableModes(AccessMode.PRIVATE, true, false, false);
+        List<AccessMode> teamOnly = AccessMode.availableModes(AccessMode.PRIVATE, perms(true, false, false));
         assertTrue(teamOnly.contains(AccessMode.TEAM));
         assertFalse(teamOnly.contains(AccessMode.GLOBAL));
     }
@@ -121,14 +124,16 @@ class AccessModeTest {
     @Test
     void serverOwnedIsLockedForNonAdmins() {
         // A non-admin can't demote a server-owned waystone, even as its owner
-        assertEquals(List.of(AccessMode.SERVER), AccessMode.availableModes(AccessMode.SERVER, false, false, false));
-        assertEquals(List.of(AccessMode.SERVER), AccessMode.availableModes(AccessMode.SERVER, true, true, false));
+        assertEquals(List.of(AccessMode.SERVER),
+                AccessMode.availableModes(AccessMode.SERVER, perms(false, false, false)));
+        assertEquals(List.of(AccessMode.SERVER),
+                AccessMode.availableModes(AccessMode.SERVER, perms(true, true, false)));
     }
 
     @Test
     void adminMayMoveAServerOwnedWaystone() {
         // An admin can
-        List<AccessMode> admin = AccessMode.availableModes(AccessMode.SERVER, false, true, true);
+        List<AccessMode> admin = AccessMode.availableModes(AccessMode.SERVER, perms(false, true, true));
         assertTrue(admin.contains(AccessMode.PRIVATE), "admin can demote to private");
         assertTrue(admin.contains(AccessMode.SERVER));
     }
@@ -137,14 +142,14 @@ class AccessModeTest {
     void nonServerCurrentModeStillIncludedWithoutPerm() {
         // Only server-owned locks. A global waystone keeps global on the menu for its
         // owner even without the permission, so a re-save can't drop it.
-        List<AccessMode> modes = AccessMode.availableModes(AccessMode.GLOBAL, false, false, false);
+        List<AccessMode> modes = AccessMode.availableModes(AccessMode.GLOBAL, perms(false, false, false));
         assertTrue(modes.contains(AccessMode.GLOBAL), "current non-server mode stays offered");
         assertTrue(modes.contains(AccessMode.PRIVATE));
     }
 
     @Test
     void optionOrderIsStablePrivateTeamGlobalServer() {
-        List<AccessMode> all = AccessMode.availableModes(AccessMode.PRIVATE, true, true, true);
+        List<AccessMode> all = AccessMode.availableModes(AccessMode.PRIVATE, perms(true, true, true));
         assertEquals(List.of(AccessMode.PRIVATE, AccessMode.TEAM, AccessMode.GLOBAL, AccessMode.SERVER), all);
     }
 
@@ -153,13 +158,13 @@ class AccessModeTest {
     @Test
     void isAllowedGatesByPermission() {
         // a non-admin can't submit access:server by hand
-        assertFalse(AccessMode.SERVER.isAllowed(true, true, false));
-        assertTrue(AccessMode.SERVER.isAllowed(false, false, true));
+        assertFalse(AccessMode.SERVER.isAllowed(perms(true, true, false)));
+        assertTrue(AccessMode.SERVER.isAllowed(perms(false, false, true)));
         // private is always allowed
-        assertTrue(AccessMode.PRIVATE.isAllowed(false, false, false));
+        assertTrue(AccessMode.PRIVATE.isAllowed(perms(false, false, false)));
         // team/global gated
-        assertFalse(AccessMode.TEAM.isAllowed(false, true, true));
-        assertFalse(AccessMode.GLOBAL.isAllowed(true, false, true));
+        assertFalse(AccessMode.TEAM.isAllowed(perms(false, true, true)));
+        assertFalse(AccessMode.GLOBAL.isAllowed(perms(true, false, true)));
     }
 
     // Ids
