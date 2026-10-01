@@ -6,7 +6,7 @@ package lol.sylvie.sswaystones.util;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.minecraft.MinecraftSessionService;
-import com.mojang.authlib.services.ProfileResult;
+import com.mojang.authlib.yggdrasil.ProfileResult;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
