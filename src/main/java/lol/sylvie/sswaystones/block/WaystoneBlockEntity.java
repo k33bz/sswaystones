@@ -14,12 +14,14 @@ import lol.sylvie.sswaystones.Waystones;
 import lol.sylvie.sswaystones.storage.WaystoneRecord;
 import lol.sylvie.sswaystones.storage.WaystoneStorage;
 import lol.sylvie.sswaystones.util.HashUtil;
+import lol.sylvie.sswaystones.util.WaystoneColors;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Display;
@@ -52,7 +54,7 @@ public class WaystoneBlockEntity extends BlockEntity {
         boolean waystoneOwned = record != null;
         boolean wantName = waystoneOwned && !record.getAccessSettings().isNameHidden();
 
-        // Create the display itself (rebuilt when the hide-name toggle changes)
+        // Create the display itself, again if hide-name changed
         if (waystoneEntity.eyeDisplay == null || wantName != (waystoneEntity.nameDisplay != null)) {
             waystoneEntity.createHologramDisplay(world);
         }
@@ -80,15 +82,10 @@ public class WaystoneBlockEntity extends BlockEntity {
             if (waystoneEntity.nameDisplay == null)
                 return;
 
-            // Name colour: team waystone -> real team colour, else the access-mode palette,
-            // shared with the viewer list via WaystoneColors. (color, above, still drives the
-            // team-vs-portal particle choice below.)
-            net.minecraft.network.chat.MutableComponent displayName = record.getWaystoneText().copy();
-            net.minecraft.network.chat.TextColor nameCol =
-                    lol.sylvie.sswaystones.util.WaystoneColors.nameColor(record, world.getScoreboard());
-            if (nameCol != null)
-                displayName.withStyle(style -> style.withColor(nameCol));
-            waystoneEntity.nameDisplay.setText(displayName);
+            // Same colour as in the viewer list
+            TextColor nameColor = WaystoneColors.nameColor(record, world.getScoreboard());
+            waystoneEntity.nameDisplay
+                    .setText(record.getWaystoneText().copy().withStyle(style -> style.withColor(nameColor)));
 
             // Bob up and down
             double y = (Math.sin((double) System.currentTimeMillis() / 1000) / 32) + 1.55d;

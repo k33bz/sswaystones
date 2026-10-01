@@ -44,9 +44,7 @@ dependencies {
 
 	include(implementation("me.lucko:fabric-permissions-api:${project.fabric_permissions_version}"))
 
-	// Pure-logic unit tests (pagination / gating / forget-eligibility / settings-UI selector /
-	// AccessSettings round-trip). These exercise plain helpers with no game runtime, so no
-	// Minecraft bootstrap is needed.
+	// Unit tests for the helpers that don't need a game running
 	testImplementation platform('org.junit:junit-bom:5.11.3')
 	testImplementation 'org.junit.jupiter:junit-jupiter'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -133,8 +131,7 @@ spotless {
 
 	java {
 		importOrder()
-		// The default engine (google-java-format) needs jdk.compiler internals that Gradle's
-		// classloader hides; the cleanthat engine does the same job without them.
+		// google-java-format needs jdk.compiler internals that Gradle hides
 		removeUnusedImports('cleanthat-javaparser-unnecessaryimport')
 
 		cleanthat()

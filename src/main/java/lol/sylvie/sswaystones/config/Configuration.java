@@ -109,10 +109,7 @@ public class Configuration {
         public boolean accessModeIcons = true;
     }
 
-    /**
-     * True only for an explicit "dialog"; anything else falls back to the sgui
-     * menus.
-     */
+    // Anything but "dialog" means the sgui menus
     public static boolean isDialogUi(String value) {
         return value != null && value.trim().equalsIgnoreCase("dialog");
     }

@@ -26,12 +26,17 @@ import lol.sylvie.sswaystones.util.NameGenerator;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
+import net.minecraft.IdentifierException;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.PermissionLevel;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 
 public class WaystonesCommand {
 
@@ -189,13 +194,11 @@ public class WaystonesCommand {
                             return 1;
                         })))));
 
-        // Submit backend for the settings dialog. `apply` is permission-0 but
-        // self-guards via canPlayerEdit and the same per-field permission checks the
-        // dialog used, so a hand-crafted command cannot escalate access.
+        // apply is what the settings dialog submits; it checks every permission itself
         dispatcher.register(literal("waystonesettings")
                 .then(literal("apply").then(
                         argument("args", StringArgumentType.greedyString()).executes(WaystonesCommand::applySettings)))
-                // Admin-gated debug/test hooks
+                // Hooks for the test harness
                 .then(literal("testcreate")
                         .requires(source -> Permissions.check(source, "sswaystones.manager", PermissionLevel.ADMINS))
                         .executes(WaystonesCommand::testCreate))
@@ -205,8 +208,6 @@ public class WaystonesCommand {
                 .then(literal("get")
                         .requires(source -> Permissions.check(source, "sswaystones.manager", PermissionLevel.ADMINS))
                         .then(argument("hash", StringArgumentType.word()).executes(WaystonesCommand::testGet)))
-                // Admin: set a waystone's icon by item id (e.g. minecraft:respawn_anchor
-                // for the spawn waystone); the console counterpart to the in-game IconGui.
                 .then(literal("icon")
                         .requires(source -> Permissions.check(source, "sswaystones.manager", PermissionLevel.ADMINS))
                         .then(argument("hash", StringArgumentType.word())
@@ -214,8 +215,7 @@ public class WaystonesCommand {
                                         .executes(WaystonesCommand::setIcon)))));
     }
 
-    // Admin: set a waystone's icon by item id. Persists via WaystoneStorage
-    // (setDirty on setIcon); the hologram + viewer pick it up on the next render.
+    // IconGui from the console, e.g. a respawn anchor for the spawn waystone
     private static int setIcon(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         WaystoneStorage storage = WaystoneStorage.getServerState(context.getSource().getServer());
         WaystoneRecord record = storage.getWaystone(StringArgumentType.getString(context, "hash"));
@@ -224,15 +224,15 @@ public class WaystonesCommand {
                     Component.translatable("command.sswaystones.waystone_not_found"));
         }
         String itemId = StringArgumentType.getString(context, "item");
-        net.minecraft.resources.Identifier id;
+        Identifier id;
         try {
-            id = net.minecraft.resources.Identifier.parse(itemId);
-        } catch (net.minecraft.IdentifierException e) {
+            id = Identifier.parse(itemId);
+        } catch (IdentifierException e) {
             context.getSource().sendFailure(Component.translatable("command.sswaystones.icon_invalid_id", itemId));
             return 0;
         }
-        net.minecraft.world.item.Item item = net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(id);
-        if (item == net.minecraft.world.item.Items.AIR) {
+        Item item = BuiltInRegistries.ITEM.getValue(id);
+        if (item == Items.AIR) {
             context.getSource().sendFailure(Component.translatable("command.sswaystones.icon_no_such_item", itemId));
             return 0;
         }
@@ -243,8 +243,7 @@ public class WaystonesCommand {
         return 1;
     }
 
-    // Echoes stored settings in a stable line for admin debugging and test
-    // assertions (the SavedData store isn't queryable via /data)
+    // One parseable line of settings, since /data can't see the SavedData store
     private static int testGet(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         WaystoneStorage storage = WaystoneStorage.getServerState(context.getSource().getServer());
         WaystoneRecord record = storage.getWaystone(StringArgumentType.getString(context, "hash"));
@@ -260,19 +259,19 @@ public class WaystonesCommand {
         return 1;
     }
 
-    // Creates a waystone at the caller's position and echoes the hash
+    // A waystone at the caller's feet, printing its hash
     private static int testCreate(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer player = context.getSource().getPlayerOrException();
         WaystoneStorage storage = WaystoneStorage.getServerState(context.getSource().getServer());
         WaystoneRecord record = storage.createWaystone(player.blockPosition(), player.level(), player);
         if (record == null)
-            return 0; // createWaystone already messaged the player (perm/limit)
+            return 0; // createWaystone already told the player why
         String hash = record.getHash();
         context.getSource().sendSuccess(() -> Component.literal("waystone_created " + hash), false);
         return 1;
     }
 
-    // Opens the viewer for the given hash, like right-clicking the waystone
+    // Same as right-clicking the waystone
     private static int testOpen(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer player = context.getSource().getPlayerOrException();
         WaystoneStorage storage = WaystoneStorage.getServerState(context.getSource().getServer());
@@ -303,7 +302,7 @@ public class WaystonesCommand {
 
         WaystoneRecord.AccessSettings access = waystone.getAccessSettings();
 
-        // Snapshot to detect a no-op submit and to log the prior access state
+        // Old values, to skip no-op saves and to log access changes
         boolean beforeGlobal = access.isGlobal();
         boolean beforeServer = access.isServerOwned();
         String beforeTeam = access.getTeam();
@@ -316,31 +315,23 @@ public class WaystonesCommand {
         boolean newServer = beforeServer;
         String newTeam = beforeTeam;
 
-        boolean canGlobal = Permissions.check(player, "sswaystones.create.global", true);
-        boolean canTeam = player.getTeam() != null && Permissions.check(player, "sswaystones.create.team", true);
-        boolean canServer = Permissions.check(player, "sswaystones.create.server", PermissionLevel.ADMINS);
+        ViewerUtil.AccessPermissions perms = ViewerUtil.AccessPermissions.of(player);
 
         if (args.accessMode().isPresent()) {
-            // Map the mode back to the fields, re-checking the same permissions the
-            // UI used to offer it
             AccessMode mode = args.accessMode().get();
-            // Moving a waystone OUT of server-owned is itself an admin action (parity with
-            // setting it) — otherwise a non-admin owner could reclaim a server waystone by
-            // picking private/global. The UI hides these options; this is the
-            // server-side gate.
+            // Leaving server-owned needs the same permission as setting it
             boolean leavingServer = beforeServer && mode != AccessMode.SERVER;
-            if (mode.isAllowed(canTeam, canGlobal, canServer) && (!leavingServer || canServer)) {
+            if (mode.isAllowed(perms.team(), perms.global(), perms.server()) && (!leavingServer || perms.server())) {
                 newGlobal = mode.global();
                 newServer = mode.serverOwned();
                 newTeam = mode.team(player.getTeam() != null ? player.getTeam().getName() : "");
             }
         } else {
-            // Legacy per-field form, each field independently permission-gated
-            if (args.global().isPresent() && canGlobal)
+            if (args.global().isPresent() && perms.global())
                 newGlobal = args.global().get();
-            if (args.team().isPresent() && canTeam)
+            if (args.team().isPresent() && perms.team())
                 newTeam = args.team().get() ? player.getTeam().getName() : "";
-            if (args.server().isPresent() && canServer)
+            if (args.server().isPresent() && perms.server())
                 newServer = args.server().get();
         }
 
@@ -353,7 +344,7 @@ public class WaystonesCommand {
             return 1;
         }
 
-        // Keep access changes recoverable from the server log
+        // Log access changes so they can be undone by hand
         boolean accessChanging = newGlobal != beforeGlobal || newServer != beforeServer || !newTeam.equals(beforeTeam);
         if (accessChanging) {
             Waystones.LOGGER.info(

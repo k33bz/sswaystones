@@ -10,12 +10,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-/**
- * Pure-logic guards for the viewer GUI: page math and forget-eligibility.
- */
 class WaystoneViewerLogicTest {
 
-    // --- pagination math (maxPages / ceilDiv) ---
+    // Page count
 
     @Test
     void emptyListIsStillOnePage() {
@@ -38,7 +35,7 @@ class WaystoneViewerLogicTest {
         assertEquals(2, WaystoneViewerLogic.maxPages(90)); // exactly 2
     }
 
-    // --- page wrap-around ---
+    // Wrap-around
 
     @Test
     void nextPageWrapsToZeroAtEnd() {
@@ -52,11 +49,11 @@ class WaystoneViewerLogicTest {
         assertEquals(0, WaystoneViewerLogic.previousPage(1, 3));
     }
 
-    // --- forget-eligibility (canForget) vs the looser lore hint ---
+    // Forgetting
 
     @Test
     void canForgetOnlyForDiscoveredNonGlobalNonOwnedTracked() {
-        // the happy path: not global, not owned by viewer, still tracked -> forgettable
+        // not global, not the viewer's own, still in storage
         assertTrue(WaystoneViewerLogic.canForget(false, false, true));
     }
 
@@ -72,14 +69,13 @@ class WaystoneViewerLogicTest {
 
     @Test
     void cannotForgetUntrackedWaystone() {
-        // e.g. already removed from storage — the delete guard must refuse
+        // already removed from storage
         assertFalse(WaystoneViewerLogic.canForget(false, false, false));
     }
 
     @Test
     void forgetLoreIsShownEvenWhenStorageIsNotConsulted() {
-        // the lore hint intentionally ignores the storage-tracked bit (too costly per
-        // lore line)
+        // the lore hint skips the storage lookup
         assertTrue(WaystoneViewerLogic.showForgetLore(false, false));
         assertFalse(WaystoneViewerLogic.showForgetLore(true, false));
         assertFalse(WaystoneViewerLogic.showForgetLore(false, true));

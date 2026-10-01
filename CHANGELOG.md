@@ -1,35 +1,44 @@
 # Changelog
 
-## Unreleased (k33bz fork)
+## 1.3.2+k33bz.9
 
-- Server-owned waystones are now **admin-curated icons**: a chosen icon (e.g. a respawn anchor
-  for the spawn waystone) is shown instead of the admin globe, which now only appears when no
-  icon was set. GLOBAL waystones still always wear the globe (uniform public marking). The
-  change-icon control is only crossed out for GLOBAL now, active for server-owned.
-- New admin command `/waystonesettings icon <hash> <item>` — set a waystone's icon by item id
-  from the console (the curation counterpart to the in-game icon picker).
+- Translations for zh_cn, zh_tw, ru_ru, es_es, es_mx, pt_br, de_de, ja_jp, fr_fr, fr_ca, ko_kr and pl_pl. A unit test keeps them in step with en_us.
+- Fork code is now maintained on `main` (26.3), `26.2` and `26.1`.
 
-- **Security:** a server-owned waystone can now only be edited by an admin. Previously its
-  nominal owner (a regular player) could still rename it or hide its name — only the access
-  mode was locked (k33bz.4). `canPlayerEdit` now returns admin-only for server-owned waystones,
-  closing rename / hide-name / access / icon across the Java UI, Bedrock UI, and the command
-  backend. (Forget/delete and block-breaking were already blocked for server-owned.)
+## 1.3.2+k33bz.8
 
-- Waystone names are now colour-coded by reach, consistently in the viewer list *and* the
-  in-world hologram: a **team** waystone shows its team's real colour (matching the floating
-  name), while global (green), server (gold), and private (gray) use the access palette. One
-  shared `WaystoneColors` helper drives the dialog selector, the list, and the hologram.
+- A server-owned waystone shows the icon an admin chose, and the globe only if none was chosen. Global waystones always show the globe.
+- `/waystonesettings icon <hash> <item>` sets a waystone's icon from the console.
 
-- **Security:** a non-admin can no longer demote a **server-owned** waystone. The access selector
-  now locks a server-owned waystone to "server" for anyone without the admin `create.server`
-  permission (previously it always offered Private, letting the nominal owner reclaim it), and
-  the `/waystonesettings apply` backend rejects leaving server-owned without that permission.
+## 1.3.2+k33bz.7
 
-- Global and server-owned waystones now render a globe marker head in place of the owner's
-  chosen icon, so public destinations stand out in the viewer (global: minecraft-heads #102645,
-  server-owned: #3638). Applied at render time, so demoting back to private/team restores the
-  original icon. Toggle with the `access_mode_icons` config option (default on).
-  - The sgui "Change Icon" button is crossed out (with an explanatory tooltip) while the marker
-    overrides the icon, and becomes active again once the waystone is private/team.
-- Guard null world in `/waystone remove` for removed dimensions (NPE).
-- Fix `build.yml` artifact name (a `/` in the ref broke `upload-artifact` on PR builds) (deep-review).
+- Only admins can edit a server-owned waystone. Its original owner could still rename it and hide its name.
+
+## 1.3.2+k33bz.6
+
+- Team waystones use their team's colour in the viewer list and on the hologram.
+
+## 1.3.2+k33bz.5
+
+- Waystone names in the viewer list are coloured by access: gray private, aqua team, green global, gold server.
+
+## 1.3.2+k33bz.4
+
+- A non-admin can no longer demote a server-owned waystone to private or global through the settings dialog or `/waystonesettings apply`.
+
+## 1.3.2+k33bz.3
+
+- The Change Icon button is crossed out while a globe marker overrides the icon.
+
+## 1.3.2+k33bz.2
+
+- Global and server-owned waystones show a globe head in place of the owner's icon. Config `access_mode_icons` turns this off.
+
+## 1.3.2+k33bz.1
+
+- Native settings dialog for Java players, enabled with `settings_ui: "dialog"`. Name, access and hide-name in one form.
+- One Access selector (Private / Team / Global / Server-owned) in the dialog and the Bedrock form instead of three toggles.
+- Hide Name toggle, from Hellscaped's upstream PR #51.
+- Viewer: page arrows only when there is more than one page, left/right-click hints on entries.
+- `/waystone remove` no longer crashes on a waystone in a removed dimension.
+- Unit tests and a build pipeline per Minecraft version.

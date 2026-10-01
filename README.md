@@ -1,22 +1,25 @@
-# Server-Side Waystones — k33bz fork
+# Server-Side Waystones (k33bz fork)
 
-An independently maintained fork of [sylvxa/sswaystones](https://github.com/sylvxa/sswaystones), a Polymer-based, fully server-side Waystone mod for Fabric with vanilla-client and Bedrock (Geyser/Floodgate) support.
+A fork of [sylvxa/sswaystones](https://github.com/sylvxa/sswaystones), the Polymer-based server-side Waystone mod for Fabric. Vanilla and Bedrock (Geyser/Floodgate) clients can join without installing anything.
 
-This fork is a **drop-in replacement**: same mod id, same save data, same config file, same permissions. Everything upstream does, this does — plus the features below. Upstream declined these changes ([PR #52](https://github.com/sylvxa/sswaystones/pull/52)), so they are developed and maintained here instead. Upstream fixes are merged in as they land.
+It is a drop-in replacement: same mod id, save data, config file and permissions. Upstream didn't want these changes ([PR #52](https://github.com/sylvxa/sswaystones/pull/52)), so they live here, and upstream fixes are merged in as they land.
 
 ![Picture of the in-game waystone, used for the project icon](src/main/resources/assets/sswaystones/icon.png)
 
-## What this fork adds
+## What the fork adds
 
-- **Native settings dialog (opt-in).** Set `settings_ui` to `dialog` and the Java "Access Settings" button opens a single vanilla server dialog — name, access level, and hide-name in one form, mirroring the Bedrock experience. The default (`sgui`) keeps the classic chest menus untouched.
+- A native settings dialog for Java players. Set `settings_ui` to `dialog` and the Access Settings button opens one form with the name, the access level and Hide Name. The default `sgui` keeps the chest menus.
 
-  ![The native settings dialog: name field, one cycling Access selector, and the Hide Name toggle in a single form](assets/settings-dialog.png)
+  ![The settings dialog: name field, Access selector and Hide Name toggle](assets/settings-dialog.png)
 
-- **One Access selector.** Instead of three independent Global/Team/Server toggles, the dialog and the Bedrock form present one mutually-exclusive access mode (Private / Team / Global / Server-owned), permission-filtered, with the waystone's current mode always preserved on re-save. All changes are re-validated server-side — the UI can't be used to escalate permissions.
-- **Hide Name toggle.** Hide a waystone's floating name hologram (especially useful against Bedrock clients, which can read it through walls). Available in all three settings UIs; saved as an optional field, so existing worlds load unchanged. Feature idea credit: [Hellscaped](https://github.com/sylvxa/sswaystones/pull/51).
-- **Viewer polish.** Page arrows only appear when there is more than one page, entries carry "Left-click: Teleport / Right-click: Forget" hints, and forget-eligibility is properly guarded.
-- **Admin debug commands.** `/waystonesettings testcreate | testopen <hash> | get <hash>` (admin-gated) mint, open, and inspect waystones deterministically — built for RCON-driven regression testing.
-- **Unit tests + CI.** The extracted pure logic (access-mode mapping, argument parsing, pagination, forget rules, config parsing) is covered by JUnit tests that run in GitHub Actions on every push.
+- One Access selector (Private, Team, Global, Server-owned) in the dialog and the Bedrock form instead of three toggles. The server checks the permissions again when the form is submitted.
+- Hide Name, to turn off a waystone's floating name. Bedrock clients can read it through walls. Idea from [Hellscaped](https://github.com/sylvxa/sswaystones/pull/51).
+- Global and server-owned waystones show a globe head in the viewer so public destinations stand out. An admin can give a server-owned waystone its own icon with `/waystonesettings icon`. Config `access_mode_icons` turns the globes off.
+- Names in the viewer list are coloured by access, and team waystones use their team's colour.
+- Only admins can edit server-owned waystones.
+- Page arrows only when there is more than one page, and click hints on each entry.
+- Translations for twelve more languages, checked against en_us by a unit test.
+- `/waystonesettings testcreate | testopen <hash> | get <hash>` (admin) for scripted testing.
 
 ## Features (from upstream)
 
@@ -37,13 +40,13 @@ This fork is a **drop-in replacement**: same mod id, same save data, same config
 
 ## Branches
 
-| Branch | Minecraft | Status |
-|---|---|---|
-| `main` | 26.3 | Active development |
-| `26.2` | 26.2 | Maintenance (backports) |
-| `26.1` | 26.1 | Maintenance (backports) |
+| Branch | Minecraft |
+|---|---|
+| `main` | 26.3 |
+| `26.2` | 26.2 |
+| `26.1` | 26.1 |
 
-Each branch has its own build + unit-test pipeline in [GitHub Actions](../../actions); jars are built on every push.
+Every push builds and runs the unit tests in [GitHub Actions](../../actions).
 
 ## Configuration
 
@@ -55,33 +58,34 @@ The file is saved in `config/sswaystones.json`, and can be edited either manuall
 - `/sswaystones config reload` (loads configuration from disk)
 - `/sswaystones config save` (saves configuration to disk)
 
-Fork-specific option:
+Fork options:
 
-- `settings_ui`: `"sgui"` (default, classic chest menus) or `"dialog"` (native settings dialog).
+- `settings_ui`: `"sgui"` (default) or `"dialog"`.
+- `access_mode_icons`: show the globe on global and server-owned waystones (default `true`).
 
 ## Permissions
 
 - `sswaystones.manager`: Allows the player to edit and steal *all* waystones. (requires op by default)
 - `sswaystones.command`: Gives access to the /sswaystones command. (requires op by default)
 - `sswaystones.create.place`: Allows the player to create waystones. (enabled by default)
-- `sswaystones.create.global`: Allows the player to create global waystones. (enabled by default)
-- `sswaystones.create.team`: Allows the player to create team-available waystones. (enabled by default)
+- `sswaystones.create.global`: Allows the player to create "global" waystones. (enabled by default)
+- `sswaystones.create.team`: Allows the player to create "team" waystones. (enabled by default)
 - `sswaystones.create.server`: Allows the player to create and break "server-owned" waystones. (requires op by default)
 
 ## Contributing
 
-Issues and pull requests are welcome here. If your change is not fork-specific, consider also offering it [upstream](https://github.com/sylvxa/sswaystones).
+Issues and pull requests are welcome. If a change isn't fork-specific, consider sending it [upstream](https://github.com/sylvxa/sswaystones) too.
 
 ### Translating
 
-Shipped languages: English (en_us), Chinese Simplified (zh_cn), Chinese Traditional (zh_tw), Russian (ru_ru), Spanish (es_es, es_mx), Portuguese (pt_br), German (de_de), Japanese (ja_jp), French (fr_fr, fr_ca), Korean (ko_kr) and Polish (pl_pl). Block names follow each locale's official Minecraft wording. `TranslationsTest` fails the build if any shipped locale is missing a key, has an extra or blank value, leaves a string in English, or changes a `%s` placeholder or `§` color code. To add a language, add it to `TranslationsTest.LOCALES`.
+Shipped: en_us, zh_cn, zh_tw, ru_ru, es_es, es_mx, pt_br, de_de, ja_jp, fr_fr, fr_ca, ko_kr, pl_pl. Block names use each locale's official Minecraft wording. `TranslationsTest` fails the build when a shipped locale is missing a key, has an extra or blank one, or changes a `%s` placeholder or `§` code.
 
-If you would like to translate this mod into another language, create its respective language file in `src/main/resources/data/sswaystones/lang` and make a PR. All keys are in the default `en_us.json`; see the [Fabric Wiki](https://fabricmc.net/wiki/tutorial:lang) for how translations work. (Make sure it goes in the `data` folder, not `assets`!)
+To add a language, create its file in `src/main/resources/data/sswaystones/lang` (the `data` folder, not `assets`), copy the keys from `en_us.json`, and add the locale to `TranslationsTest.LOCALES`. See the [Fabric Wiki](https://fabricmc.net/wiki/tutorial:lang) for how translations work.
 
-## Credits & license
+## Credits and license
 
-- [sylvie (sylvxa)](https://github.com/sylvxa) — original author of sswaystones, which remains the heart of this mod.
-- [Hellscaped](https://github.com/Hellscaped) — hide-name feature idea (upstream PR #51).
+- [sylvie (sylvxa)](https://github.com/sylvxa) wrote sswaystones.
+- [Hellscaped](https://github.com/Hellscaped) had the Hide Name idea (upstream PR #51).
 - Inspired by the now-archived [Wraith Waystones Polymer Port](https://modrinth.com/mod/polymer-ports-waystones).
 
-Licensed under the [MIT License](LICENSE), same as upstream.
+MIT, same as upstream.

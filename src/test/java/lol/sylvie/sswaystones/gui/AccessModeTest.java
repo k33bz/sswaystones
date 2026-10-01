@@ -13,17 +13,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/**
- * Pure-logic guards for the collapsed "Access" selector: the mode -> fields
- * mapping (each mode sets exactly the right booleans+team), the fields ->
- * initial-mode precedence (incl. legacy-combo normalization), and the
- * per-permission option filtering (server only for admins). A regression in any
- * of these would silently mis-set access on a live server, so each is asserted
- * here.
- */
 class AccessModeTest {
 
-    // --- mode -> fields (mutually exclusive) ---
+    // Mode to fields
 
     @Test
     void privateClearsEverything() {
@@ -54,7 +46,7 @@ class AccessModeTest {
         assertEquals("", AccessMode.SERVER.team("red"));
     }
 
-    // --- fields -> initial mode (precedence server > global > team > private) ---
+    // Fields to mode
 
     @Test
     void freshWaystoneIsPrivate() {
@@ -73,18 +65,18 @@ class AccessModeTest {
 
     @Test
     void serverOwnedWinsOverEverything() {
-        // server is highest precedence, even if global/team also set
+        // server beats global and team
         assertEquals(AccessMode.SERVER, AccessMode.fromSettings(true, true, true));
         assertEquals(AccessMode.SERVER, AccessMode.fromSettings(true, false, false));
     }
 
     @Test
     void globalWinsOverTeam_legacyComboNormalizes() {
-        // a legacy redundant global+team combo collapses to the displayed mode
+        // an old global+team save collapses to global
         assertEquals(AccessMode.GLOBAL, AccessMode.fromSettings(false, true, true));
     }
 
-    // --- round trip: fromSettings then apply -> stable mode ---
+    // Round trip
 
     @Test
     void modeRoundTripsThroughFields() {
@@ -94,7 +86,7 @@ class AccessModeTest {
         }
     }
 
-    // --- option filtering by permission (always include current mode) ---
+    // Which modes are offered
 
     @Test
     void privateAlwaysOffered() {
@@ -104,13 +96,13 @@ class AccessModeTest {
 
     @Test
     void serverOptionOnlyForAdmins() {
-        // non-admin (canServer=false), not currently server-owned -> NO server option
+        // not an admin, not currently server-owned
         List<AccessMode> nonAdmin = AccessMode.availableModes(AccessMode.PRIVATE, true, true, false);
         assertFalse(nonAdmin.contains(AccessMode.SERVER), "non-admin must not get the server option");
         assertTrue(nonAdmin.contains(AccessMode.GLOBAL));
         assertTrue(nonAdmin.contains(AccessMode.TEAM));
 
-        // admin -> server option present
+        // admin
         List<AccessMode> admin = AccessMode.availableModes(AccessMode.PRIVATE, true, true, true);
         assertTrue(admin.contains(AccessMode.SERVER), "admin gets the server option");
     }
@@ -128,19 +120,14 @@ class AccessModeTest {
 
     @Test
     void serverOwnedIsLockedForNonAdmins() {
-        // SECURITY: a non-admin viewing a server-owned waystone may NOT demote it — the
-        // selector offers ONLY server, with no private/global/team escape hatch. (This
-        // replaced the old behavior that always offered PRIVATE, which let a non-admin
-        // owner reclaim a server waystone as their own.)
-        assertEquals(List.of(AccessMode.SERVER),
-                AccessMode.availableModes(AccessMode.SERVER, false, false, false));
-        assertEquals(List.of(AccessMode.SERVER),
-                AccessMode.availableModes(AccessMode.SERVER, true, true, false));
+        // A non-admin can't demote a server-owned waystone, even as its owner
+        assertEquals(List.of(AccessMode.SERVER), AccessMode.availableModes(AccessMode.SERVER, false, false, false));
+        assertEquals(List.of(AccessMode.SERVER), AccessMode.availableModes(AccessMode.SERVER, true, true, false));
     }
 
     @Test
     void adminMayMoveAServerOwnedWaystone() {
-        // An admin (canServer) sees the full set and can demote or relabel it.
+        // An admin can
         List<AccessMode> admin = AccessMode.availableModes(AccessMode.SERVER, false, true, true);
         assertTrue(admin.contains(AccessMode.PRIVATE), "admin can demote to private");
         assertTrue(admin.contains(AccessMode.SERVER));
@@ -148,9 +135,8 @@ class AccessModeTest {
 
     @Test
     void nonServerCurrentModeStillIncludedWithoutPerm() {
-        // The lock is specific to server-owned; a global waystone still keeps global on
-        // the menu for its owner even if the global perm were revoked, so a re-save can't
-        // silently drop it.
+        // Only server-owned locks. A global waystone keeps global on the menu for its
+        // owner even without the permission, so a re-save can't drop it.
         List<AccessMode> modes = AccessMode.availableModes(AccessMode.GLOBAL, false, false, false);
         assertTrue(modes.contains(AccessMode.GLOBAL), "current non-server mode stays offered");
         assertTrue(modes.contains(AccessMode.PRIVATE));
@@ -162,11 +148,11 @@ class AccessModeTest {
         assertEquals(List.of(AccessMode.PRIVATE, AccessMode.TEAM, AccessMode.GLOBAL, AccessMode.SERVER), all);
     }
 
-    // --- server-side apply gate (isAllowed) — the anti-escalation check ---
+    // Apply gate
 
     @Test
     void isAllowedGatesByPermission() {
-        // a non-admin cannot APPLY server even if they somehow submit access:server
+        // a non-admin can't submit access:server by hand
         assertFalse(AccessMode.SERVER.isAllowed(true, true, false));
         assertTrue(AccessMode.SERVER.isAllowed(false, false, true));
         // private is always allowed
@@ -176,7 +162,7 @@ class AccessModeTest {
         assertFalse(AccessMode.GLOBAL.isAllowed(true, false, true));
     }
 
-    // --- id parsing ---
+    // Ids
 
     @Test
     void fromIdParsesKnownIdsAndFallsBackToPrivate() {
@@ -188,14 +174,14 @@ class AccessModeTest {
         assertEquals(AccessMode.PRIVATE, AccessMode.fromId("bogus"));
     }
 
-    // --- marker head textures (public modes only) ---
+    // Marker heads
 
     @Test
     void onlyPubliclyReachableModesForceAMarkerHead() {
-        // Personal modes keep whatever icon the owner chose.
+        // personal modes keep the owner's icon
         assertNull(AccessMode.PRIVATE.headTexture());
         assertNull(AccessMode.TEAM.headTexture());
-        // Public ones override it with their globe marker.
+        // public ones get the globe
         assertEquals(AccessMode.GLOBAL_HEAD_TEXTURE, AccessMode.GLOBAL.headTexture());
         assertEquals(AccessMode.SERVER_HEAD_TEXTURE, AccessMode.SERVER.headTexture());
     }
@@ -205,12 +191,11 @@ class AccessModeTest {
         assertNotEquals(AccessMode.GLOBAL.headTexture(), AccessMode.SERVER.headTexture());
     }
 
-    // --- edit permission (server-owned = admin only) ---
+    // Who may edit
 
     @Test
     void serverOwnedIsEditableOnlyByAdmins() {
-        // SECURITY: the nominal owner (non-admin) may NOT edit a server-owned waystone —
-        // no rename, hide-name, or access change. Only an admin can.
+        // being the owner is not enough on a server-owned waystone
         assertFalse(AccessMode.canEdit(true, true, false), "owner (non-admin) cannot edit server waystone");
         assertFalse(AccessMode.canEdit(true, false, false));
         assertTrue(AccessMode.canEdit(true, false, true), "admin can edit server waystone");
@@ -224,35 +209,31 @@ class AccessModeTest {
         assertFalse(AccessMode.canEdit(false, false, false), "a stranger cannot edit");
     }
 
-    // --- marker-icon vs custom icon ---
+    // Marker vs chosen icon
 
     @Test
     void globalAlwaysWearsTheMarker() {
-        // A GLOBAL waystone shows the globe whether or not the owner set an icon.
+        // with or without an icon of its own
         assertTrue(AccessMode.usesMarkerIcon(AccessMode.GLOBAL, false));
         assertTrue(AccessMode.usesMarkerIcon(AccessMode.GLOBAL, true));
     }
 
     @Test
     void serverOwnedIsAdminCurated() {
-        // SERVER-owned: a chosen icon (e.g. respawn anchor for spawn) wins; else the admin globe.
+        // a chosen icon wins, else the admin globe
         assertFalse(AccessMode.usesMarkerIcon(AccessMode.SERVER, true), "custom icon wins on a server waystone");
         assertTrue(AccessMode.usesMarkerIcon(AccessMode.SERVER, false), "no icon -> admin globe");
     }
 
     @Test
     void privateAndTeamNeverUseTheMarker() {
-        for (boolean custom : new boolean[] {true, false}) {
+        for (boolean custom : new boolean[]{true, false}) {
             assertFalse(AccessMode.usesMarkerIcon(AccessMode.PRIVATE, custom));
             assertFalse(AccessMode.usesMarkerIcon(AccessMode.TEAM, custom));
         }
     }
 
-    /**
-     * The textures are base64 skin blobs pinned to specific minecraft-heads
-     * entries; decoding them guards against a truncated/re-wrapped paste, which
-     * would otherwise only show up in-game as a blank steve head.
-     */
+    // A truncated paste would only show up in game as a blank Steve head
     @Test
     void headTexturesDecodeToTheExpectedSkinUrls() {
         String global = new String(java.util.Base64.getDecoder().decode(AccessMode.GLOBAL_HEAD_TEXTURE),

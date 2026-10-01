@@ -8,11 +8,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import lol.sylvie.sswaystones.gui.AccessMode;
+import lol.sylvie.sswaystones.gui.ViewerUtil;
 import lol.sylvie.sswaystones.storage.PlayerData;
 import lol.sylvie.sswaystones.storage.WaystoneRecord;
 import lol.sylvie.sswaystones.storage.WaystoneStorage;
 import lol.sylvie.sswaystones.util.NameGenerator;
-import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.server.level.ServerPlayer;
 import org.geysermc.cumulus.component.ButtonComponent;
 import org.geysermc.cumulus.form.CustomForm;
@@ -120,15 +120,11 @@ public class BedrockViewerGui {
         WaystoneRecord.AccessSettings accessSettings = waystone.getAccessSettings();
         builder.input("Waystone Name", NameGenerator.generateName(), waystone.getWaystoneName());
 
-        // One access dropdown routed through AccessMode, matching the Java dialog
-        boolean globalAvailable = Permissions.check(player, "sswaystones.create.global", true);
-        boolean teamAvailable = player.getTeam() != null && Permissions.check(player, "sswaystones.create.team", true);
-        boolean serverAvailable = Permissions.check(player, "sswaystones.create.server", 4);
-
+        // One access dropdown, same modes as the Java dialog
+        ViewerUtil.AccessPermissions perms = ViewerUtil.AccessPermissions.of(player);
         AccessMode currentMode = AccessMode.fromSettings(accessSettings.isServerOwned(), accessSettings.isGlobal(),
                 accessSettings.hasTeam());
-        List<AccessMode> modes = AccessMode.availableModes(currentMode, teamAvailable, globalAvailable,
-                serverAvailable);
+        List<AccessMode> modes = AccessMode.availableModes(currentMode, perms.team(), perms.global(), perms.server());
         List<String> modeLabels = new ArrayList<>();
         for (AccessMode m : modes)
             modeLabels.add(bedrockModeLabel(m));
@@ -142,13 +138,11 @@ public class BedrockViewerGui {
             if (name == null)
                 return;
 
-            // component order: 0 = name input, 1 = access dropdown, 2 = hide-name toggle.
+            // 0 = name, 1 = access, 2 = hide name
             int selected = response.asDropdown(1);
             if (selected >= 0 && selected < modes.size()) {
                 AccessMode mode = modes.get(selected);
-                // The current mode is always offered, but applying still needs permission
-                boolean canServer = Permissions.check(player, "sswaystones.create.server", 4);
-                if (mode.isAllowed(teamAvailable, globalAvailable, canServer)) {
+                if (mode.isAllowed(perms.team(), perms.global(), perms.server())) {
                     accessSettings.setGlobal(mode.global());
                     accessSettings.setServerOwned(mode.serverOwned());
                     accessSettings.setTeam(mode.team(player.getTeam() != null ? player.getTeam().getName() : ""));
