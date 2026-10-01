@@ -39,11 +39,11 @@ This fork is a **drop-in replacement**: same mod id, same save data, same config
 
 | Branch | Minecraft | Status |
 |---|---|---|
-| `main` | 26.2 | Active development |
-| `26.1` | 26.1 | Maintenance |
-| `26.3` | 26.3 | Experimental (upstream deps not published yet) |
+| `main` | 26.3 | Active development |
+| `26.2` | 26.2 | Maintenance (backports) |
+| `26.1` | 26.1 | Maintenance (backports) |
 
-Jars are built by [GitHub Actions](../../actions) on every push.
+Each branch has its own build + unit-test pipeline in [GitHub Actions](../../actions); jars are built on every push.
 
 ## Configuration
 
@@ -73,6 +73,8 @@ Fork-specific option:
 Issues and pull requests are welcome here. If your change is not fork-specific, consider also offering it [upstream](https://github.com/sylvxa/sswaystones).
 
 ### Translating
+
+Shipped languages: English (en_us), Chinese Simplified (zh_cn), Chinese Traditional (zh_tw), Russian (ru_ru), Spanish (es_es, es_mx), Portuguese (pt_br), German (de_de), Japanese (ja_jp), French (fr_fr, fr_ca), Korean (ko_kr) and Polish (pl_pl). Block names follow each locale's official Minecraft wording. `TranslationsTest` fails the build if any shipped locale is missing a key, has an extra or blank value, leaves a string in English, or changes a `%s` placeholder or `§` color code. To add a language, add it to `TranslationsTest.LOCALES`.
 
 If you would like to translate this mod into another language, create its respective language file in `src/main/resources/data/sswaystones/lang` and make a PR. All keys are in the default `en_us.json`; see the [Fabric Wiki](https://fabricmc.net/wiki/tutorial:lang) for how translations work. (Make sure it goes in the `data` folder, not `assets`!)
 
