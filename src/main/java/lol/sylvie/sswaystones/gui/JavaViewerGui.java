@@ -126,6 +126,9 @@ public class JavaViewerGui extends SimpleGui {
                 this.setSlot(50, new GuiElementBuilder(Items.PLAYER_HEAD).setProfileSkinTexture(IconConstants.CHEST)
                         .setName(Component.translatable("gui.sswaystones.steal_waystone").withStyle(ChatFormatting.RED))
                         .setCallback((index, type, action, gui) -> {
+                            // Rights are checked again on click, the menu may be stale
+                            if (!Permissions.check(player, "sswaystones.manager", 4))
+                                return;
                             waystone.setOwner(player);
                             this.updateMenu();
                         }));
@@ -200,7 +203,9 @@ public class JavaViewerGui extends SimpleGui {
             this.setSlot(2, new GuiElementBuilder(Items.PLAYER_HEAD).setProfileSkinTexture(IconConstants.CHECKMARK)
                     .setName(CommonComponents.GUI_DONE).setCallback((index, type, action, gui) -> {
                         String input = this.getInput();
-                        waystone.setWaystoneName(input);
+                        // Rights are checked again on submit, they may have changed while typing
+                        if (waystone.canPlayerEdit(player))
+                            waystone.setWaystoneName(input);
                         gui.close();
                     }));
 
@@ -240,7 +245,8 @@ public class JavaViewerGui extends SimpleGui {
                 ItemStack stack = player.getInventory().getItem(index);
 
                 if (!stack.is(Items.AIR)) {
-                    waystone.setIcon(stack.getItem());
+                    if (waystone.canPlayerEdit(player))
+                        waystone.setIcon(stack.getItem());
                     this.close();
                 }
             }
@@ -288,6 +294,8 @@ public class JavaViewerGui extends SimpleGui {
                                 .withStyle(accessSettings.isGlobal() ? ChatFormatting.GREEN : ChatFormatting.RED));
 
                 globalToggle.setCallback((index, type, action, gui) -> {
+                    if (!mayToggle("sswaystones.create.global", true))
+                        return;
                     accessSettings.setGlobal(!accessSettings.isGlobal());
                     this.updateMenu();
                 });
@@ -305,6 +313,8 @@ public class JavaViewerGui extends SimpleGui {
                                 .withStyle(accessSettings.hasTeam() ? ChatFormatting.GREEN : ChatFormatting.RED));
 
                 teamToggle.setCallback((index, type, action, gui) -> {
+                    if (!mayToggle("sswaystones.create.team", true))
+                        return;
                     accessSettings.setTeam(accessSettings.hasTeam() ? "" : teamName);
                     this.updateMenu();
                 });
@@ -320,6 +330,8 @@ public class JavaViewerGui extends SimpleGui {
                                 .withStyle(accessSettings.isServerOwned() ? ChatFormatting.GREEN : ChatFormatting.RED));
 
                 serverToggle.setCallback((index, type, action, gui) -> {
+                    if (!mayToggle("sswaystones.create.server", false))
+                        return;
                     accessSettings.setServerOwned(!accessSettings.isServerOwned());
                     this.updateMenu();
                 });
@@ -332,6 +344,10 @@ public class JavaViewerGui extends SimpleGui {
                     .setName(Component.translatable("gui.sswaystones.toggle_hide_name")
                             .withStyle(accessSettings.isNameHidden() ? ChatFormatting.GREEN : ChatFormatting.RED));
             hideNameToggle.setCallback((index, type, action, gui) -> {
+                if (!waystone.canPlayerEdit(player)) {
+                    this.close();
+                    return;
+                }
                 accessSettings.setNameHidden(!accessSettings.isNameHidden());
                 this.updateMenu();
             });
@@ -349,6 +365,17 @@ public class JavaViewerGui extends SimpleGui {
                                     ViewerUtil.openJavaGui(player, waystone);
                                 }));
             }
+        }
+
+        // The menu was built with the rights the player had when it opened. A click re-checks them, so an admin
+        // taking over the waystone or a revoked permission takes effect at once
+        private boolean mayToggle(String node, boolean defaultValue) {
+            boolean allowed = waystone.canPlayerEdit(player) && (defaultValue
+                    ? Permissions.check(player, node, true)
+                    : Permissions.check(player, node, PermissionLevel.ADMINS));
+            if (!allowed)
+                this.close();
+            return allowed;
         }
 
         @Override
@@ -381,7 +408,7 @@ public class JavaViewerGui extends SimpleGui {
                             .setName(Component.translatable("selectWorld.deleteButton").withStyle(ChatFormatting.RED))
                             .setCallback((index, type, action, gui) -> {
                                 PlayerData data = WaystoneStorage.getPlayerState(player);
-                                data.getDiscoveredWaystones().remove(this.target.getHash());
+                                data.forget(this.target.getHash());
                                 gui.close();
                             }));
 
