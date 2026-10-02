@@ -1,5 +1,34 @@
 # Server-Side Waystones (k33bz fork)
 
+**Minecraft 26.3** · [`main`](../../tree/main)<br>
+[![build](https://img.shields.io/github/actions/workflow/status/k33bz/sswaystones/build.yml?branch=main&label=build&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3Amain)
+[![sswaystones](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k33bz/sswaystones/badges/main/mod.json&label=sswaystones&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3Amain)
+[![tested on](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k33bz/sswaystones/badges/main/minecraft.json&label=tested%20on&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3Amain)
+[![loader](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k33bz/sswaystones/badges/main/loader.json&label=loader&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3Amain)
+[![fabric-api](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k33bz/sswaystones/badges/main/fabric-api.json&label=fabric-api&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3Amain)
+[![polymer](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k33bz/sswaystones/badges/main/polymer.json&label=polymer&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3Amain)
+[![server test](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k33bz/sswaystones/badges/main/server-test.json&label=server%20test&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3Amain)
+
+**Minecraft 26.2** · [`26.2`](../../tree/26.2)<br>
+[![build](https://img.shields.io/github/actions/workflow/status/k33bz/sswaystones/build.yml?branch=26.2&label=build&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3A26.2)
+[![sswaystones](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k33bz/sswaystones/badges/26.2/mod.json&label=sswaystones&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3A26.2)
+[![tested on](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k33bz/sswaystones/badges/26.2/minecraft.json&label=tested%20on&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3A26.2)
+[![loader](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k33bz/sswaystones/badges/26.2/loader.json&label=loader&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3A26.2)
+[![fabric-api](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k33bz/sswaystones/badges/26.2/fabric-api.json&label=fabric-api&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3A26.2)
+[![polymer](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k33bz/sswaystones/badges/26.2/polymer.json&label=polymer&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3A26.2)
+[![server test](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k33bz/sswaystones/badges/26.2/server-test.json&label=server%20test&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3A26.2)
+
+**Minecraft 26.1** · [`26.1`](../../tree/26.1)<br>
+[![build](https://img.shields.io/github/actions/workflow/status/k33bz/sswaystones/build.yml?branch=26.1&label=build&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3A26.1)
+[![sswaystones](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k33bz/sswaystones/badges/26.1/mod.json&label=sswaystones&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3A26.1)
+[![tested on](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k33bz/sswaystones/badges/26.1/minecraft.json&label=tested%20on&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3A26.1)
+[![loader](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k33bz/sswaystones/badges/26.1/loader.json&label=loader&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3A26.1)
+[![fabric-api](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k33bz/sswaystones/badges/26.1/fabric-api.json&label=fabric-api&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3A26.1)
+[![polymer](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k33bz/sswaystones/badges/26.1/polymer.json&label=polymer&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3A26.1)
+[![server test](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k33bz/sswaystones/badges/26.1/server-test.json&label=server%20test&style=flat-square)](https://github.com/k33bz/sswaystones/actions/workflows/build.yml?query=branch%3A26.1)
+
+<sub>Badges are written by CI on every push to `main`/`26.2`/`26.1` (`scripts/publish_badges.py`, kept on the `badges` branch). "tested on" is the Minecraft release the real-server CI test booted (`scripts/server_test.py`), and fabric-api is the version it booted with.</sub>
+
 A fork of [sylvxa/sswaystones](https://github.com/sylvxa/sswaystones), the Polymer-based server-side Waystone mod for Fabric. Vanilla and Bedrock (Geyser/Floodgate) clients can join without installing anything.
 
 It is a drop-in replacement: same mod id, save data, config file and permissions. Upstream didn't want these changes ([PR #52](https://github.com/sylvxa/sswaystones/pull/52)), so they live here, and upstream fixes are merged in as they land.
