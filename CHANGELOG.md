@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased (CI only, no mod change)
+
+- **Real-server CI test** (`scripts/server_test.py`, adapted from Sanctuary's): every push and PR boots a real
+  Fabric server on the newest release of the branch's Minecraft line (the 26.1 line tests 26.1.2, what servers
+  run) with the newest fabric-api, and checks through the console that sswaystones initializes and injects its
+  village pieces, that `/sswaystones` and `/sswaystones list` answer, that all five village waystone templates
+  load and place, that a waystone block placed by command ticks cleanly, that a plains village generates
+  through the injected pools, and that no mixin or tick error reaches the log.
+- **README badges per release line** (`main` 26.3, `26.2`, `26.1`): build, mod version, the Minecraft release
+  tested, Fabric loader, fabric-api, Polymer and the server-test count. CI writes shields.io endpoint JSON to an
+  orphan `badges` branch on pushes to a release line only (`scripts/publish_badges.py`,
+  `scripts/commit_badges.sh`).
+
 ## 1.3.2+k33bz.9
 
 - Translations for zh_cn, zh_tw, ru_ru, es_es, es_mx, pt_br, de_de, ja_jp, fr_fr, fr_ca, ko_kr and pl_pl. A unit test keeps them in step with en_us.
