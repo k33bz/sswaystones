@@ -1,0 +1,112 @@
+name: release
+
+# Tag a release line to publish its jar as a GitHub release.
+#
+#   git tag -a 'v1.3.2+k33bz.10+26.1' origin/26.1 -m '...'
+#   git push origin 'v1.3.2+k33bz.10+26.1'
+#
+# The tag is v<mod_version>+<minecraft_version>, read from gradle.properties at the tagged commit.
+# Every line shares mod_version, so the Minecraft suffix is what tells the jars apart, and the
+# jar is renamed to match (the build itself names all three lines' jars the same).
+#
+# A release is only published when the tag matches the tagged commit's gradle.properties, the
+# commit is on its release line, and the jar passes the unit tests and the real-server test.
+# Only a tag on main (the newest Minecraft) is marked "latest", so the backport lines never
+# take over the repository's front page.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.repository_owner == 'k33bz'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # needs the release branches to check where the tag points
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+          cache: gradle
+      - name: Check the tag against the tagged commit
+        run: |
+          set -euo pipefail
+          tag="$GITHUB_REF_NAME"
+          mod=$(grep -E '^mod_version *=' gradle.properties | cut -d= -f2 | tr -d ' ')
+          mc=$(grep -E '^minecraft_version *=' gradle.properties | cut -d= -f2 | tr -d ' ')
+          want="v${mod}+${mc}"
+          if [ "$tag" != "$want" ]; then
+            echo "::error::tag $tag does not match gradle.properties at this commit (expected $want)"
+            exit 1
+          fi
+          # The commit must be on the release line for this Minecraft version
+          line=""
+          for br in $(git branch -r --contains HEAD --format='%(refname:short)' | grep -E '^origin/(main|26\.[0-9]+)$' || true); do
+            br_mc=$(git show "$br:gradle.properties" | grep -E '^minecraft_version *=' | cut -d= -f2 | tr -d ' ')
+            if [ "$br_mc" = "$mc" ]; then
+              line=${br#origin/}
+              break
+            fi
+          done
+          if [ -z "$line" ]; then
+            echo "::error::$GITHUB_SHA is not on the release branch for Minecraft $mc (main or 26.x)"
+            exit 1
+          fi
+          latest=false
+          [ "$line" = "main" ] && latest=true
+          {
+            echo "MOD_VERSION=$mod"
+            echo "MC_VERSION=$mc"
+            echo "LINE=$line"
+            echo "LATEST=$latest"
+          } >> "$GITHUB_ENV"
+          echo "### sswaystones $mod for Minecraft $mc (\`$line\`)" >> "$GITHUB_STEP_SUMMARY"
+      # Same build as build.yml (spotless skipped: its formatter download is flaky and it is not a gate)
+      - name: Build + tests
+        run: ./gradlew build -x spotlessJava -x spotlessCheck -x spotlessMisc
+      # Never publish a jar that does not load and work on a real server of its line
+      - name: Server test (real Fabric server)
+        run: python3 scripts/server_test.py
+      - name: Upload server-test log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-server-test-log-${{ env.MC_VERSION }}
+          path: build/server-test/console.log
+          if-no-files-found: ignore
+      - name: Name the jar for its Minecraft version
+        run: |
+          set -euo pipefail
+          jar=$(ls build/libs/*.jar | grep -vE -- '-(sources|dev|javadoc)\.jar$' | head -1)
+          mkdir -p dist
+          out="dist/sswaystones-${MOD_VERSION}+${MC_VERSION}.jar"
+          cp "$jar" "$out"
+          (cd dist && sha256sum "$(basename "$out")" > "$(basename "$out").sha256")
+          echo "JAR=$out" >> "$GITHUB_ENV"
+          echo "Jar: \`$(basename "$out")\`" >> "$GITHUB_STEP_SUMMARY"
+      - name: Release notes from CHANGELOG.md
+        run: |
+          python3 - <<'EOF'
+          import os, re
+          mod, mc, line = os.environ["MOD_VERSION"], os.environ["MC_VERSION"], os.environ["LINE"]
+          text = open("CHANGELOG.md", encoding="utf-8").read()
+          m = re.search(r"^## " + re.escape(mod) + r"\s*\n(.*?)(?=^## |\Z)", text, re.S | re.M)
+          body = m.group(1).strip() if m else "See CHANGELOG.md."
+          head = (f"For **Minecraft {mc}** (`{line}` line). Use the jar whose name ends in `+{mc}.jar`; "
+                  f"it only loads on Minecraft {mc}.x.\n\n")
+          open("release-notes.md", "w", encoding="utf-8").write(head + body + "\n")
+          EOF
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "$JAR" "$JAR.sha256" \
+            --title "sswaystones ${MOD_VERSION} for Minecraft ${MC_VERSION}" \
+            --notes-file release-notes.md \
+            --latest="$LATEST"
