@@ -75,7 +75,9 @@ It is a drop-in replacement: same mod id, save data, config file and permissions
 | `26.2` | 26.2 |
 | `26.1` | 26.1 |
 
-Every push builds and runs the unit tests in [GitHub Actions](../../actions).
+Every push builds, runs the unit tests and boots a real server in [GitHub Actions](../../actions).
+
+Releases are per line. Pushing a tag `v<mod_version>+<minecraft_version>` (for example `v1.3.2+k33bz.10+26.1`) on a line's branch builds that line, runs the real-server test, and publishes `sswaystones-<mod_version>+<minecraft_version>.jar` as a [GitHub release](../../releases). Each jar only loads on its own Minecraft version, so pick the one whose name ends in your server's version. Only `main` releases are marked latest.
 
 ## Configuration
 

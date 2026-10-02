@@ -30,6 +30,7 @@ CI (no mod change):
   tested, Fabric loader, fabric-api, Polymer and the server-test count. CI writes shields.io endpoint JSON to an
   orphan `badges` branch on pushes to a release line only (`scripts/publish_badges.py`,
   `scripts/commit_badges.sh`).
+- **Release workflow** (`.github/workflows/release.yml`): pushing a tag `v<mod_version>+<minecraft_version>` on a release line checks the tag against that commit's `gradle.properties` and branch, builds, runs the real-server test, and publishes `sswaystones-<mod_version>+<minecraft_version>.jar` (with a `.sha256`) as a GitHub release, with notes taken from this changelog. The build names every line's jar the same, so the Minecraft suffix is what tells them apart. Only `main` releases are marked latest.
 
 ## 1.3.2+k33bz.9
 
