@@ -5,9 +5,6 @@
 package lol.sylvie.sswaystones.storage;
 
 import com.mojang.authlib.GameProfile;
-import com.mojang.authlib.minecraft.MinecraftProfileTextures;
-import com.mojang.authlib.minecraft.SessionService;
-import com.mojang.authlib.services.ProfileResult;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.List;
@@ -21,9 +18,10 @@ import lol.sylvie.sswaystones.gui.AccessIcons;
 import lol.sylvie.sswaystones.gui.AccessMode;
 import lol.sylvie.sswaystones.gui.ViewerUtil;
 import lol.sylvie.sswaystones.util.HashUtil;
+import lol.sylvie.sswaystones.util.SkinCache;
+import lol.sylvie.sswaystones.util.WaystoneNames;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.ChatFormatting;
-import net.minecraft.IdentifierException;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.Vec3i;
@@ -32,7 +30,6 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.particles.PowerParticleOption;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -40,14 +37,14 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ResolvableProfile;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.PlayerTeam;
@@ -94,6 +91,11 @@ public final class WaystoneRecord {
         this.icon = icon == null ? Items.PLAYER_HEAD : icon;
     }
 
+    // Landing spots beside the waystone, checked in this order
+    private static final List<Vec3i> LANDING_CHECKS = List.of(new Vec3i(-1, -1, 0), new Vec3i(1, -1, 0),
+            new Vec3i(0, -1, -1), new Vec3i(0, -1, 1), new Vec3i(-1, -1, -1), new Vec3i(1, -1, 1),
+            new Vec3i(1, -1, -1), new Vec3i(-1, -1, 1));
+
     public void handleTeleport(ServerPlayer player) {
         Level world = player.level();
         MinecraftServer server = world.getServer();
@@ -107,17 +109,25 @@ public final class WaystoneRecord {
 
         Configuration.Instance config = Waystones.configuration.getInstance();
 
-        // Experience cost
-        int requiredXp = getXpCost(player);
-        if (requiredXp > 0) {
-            if (player.experienceLevel < requiredXp) {
-                player.sendOverlayMessage(
-                        Component.translatable("error.sswaystones.not_enough_xp", requiredXp - player.experienceLevel)
-                                .withStyle(ChatFormatting.RED));
-                return;
-            } else {
-                player.giveExperienceLevels(Math.min(-requiredXp, 0)); // Stop negative values from adding xp
-            }
+        // The viewer may have been open for a while, so everything the viewer checked when it opened is checked
+        // again at click time: combat, whether this waystone still exists, and whether the player may still use it
+        if (Waystones.isInCombat(player)) {
+            player.sendOverlayMessage(
+                    Component.translatable("error.sswaystones.combat_cooldown").withStyle(ChatFormatting.RED));
+            return;
+        }
+
+        WaystoneStorage storage = WaystoneStorage.getServerState(server);
+        if (storage.getWaystone(this.getHash()) != this) {
+            player.sendSystemMessage(
+                    Component.translatable("error.sswaystones.invalid_waystone").withStyle(ChatFormatting.RED));
+            return;
+        }
+
+        if (!this.getAccessSettings().canPlayerAccess(this, player)) {
+            player.sendOverlayMessage(
+                    Component.translatable("error.sswaystones.no_access").withStyle(ChatFormatting.RED));
+            return;
         }
 
         // This may happen if someone has a waystone in a dimension from a mod that is
@@ -130,60 +140,38 @@ public final class WaystoneRecord {
         }
 
         // Remove invalid waystones
-        BlockPos target = this.getPos();
-        if (!(targetWorld.getBlockState(target).getBlock() instanceof WaystoneBlock) && config.removeInvalidWaystones) {
-            WaystoneStorage.getServerState(server).destroyWaystone(this);
+        BlockPos waystonePos = this.getPos();
+        if (!(targetWorld.getBlockState(waystonePos).getBlock() instanceof WaystoneBlock)
+                && config.removeInvalidWaystones) {
+            storage.destroyWaystone(this);
             player.sendSystemMessage(
                     Component.translatable("error.sswaystones.invalid_waystone").withStyle(ChatFormatting.RED));
             return;
         }
 
-        if (config.safeTeleport) {
-            // Remove any blocks trying to suffocate the player except those marked as
-            // unremoveable
-            List<Block> unremoveableBlocks = config.safeTeleportUnremovableBlocks.stream().map(x -> {
-                try {
-                    Identifier id = Identifier.parse(x);
-                    return BuiltInRegistries.BLOCK.getValue(id);
-                } catch (IdentifierException ignored) {
-                }
-                return null;
-            }).toList();
-            BlockPos head = target.offset(0, 1, 0);
-            BlockState headState = targetWorld.getBlockState(head);
-            if (!headState.getCollisionShape(targetWorld, head).isEmpty()) {
-                if (headState.getDestroySpeed(targetWorld, head) != -1
-                        && !unremoveableBlocks.contains(headState.getBlock())) {
-                    server.executeIfPossible(() -> targetWorld.destroyBlock(head, true));
-                }
+        // Teleporting never breaks or places blocks. Paranoid teleport used to break the block above the waystone
+        // with drops and build a cobblestone floor, which ignored claims and let anyone empty a chest stacked on
+        // someone else's waystone. Now, with paranoid teleport on, a waystone with nowhere safe to stand is refused
+        BlockPos target = findLanding(targetWorld, waystonePos);
+        if (target == null) {
+            if (config.safeTeleport) {
+                player.sendOverlayMessage(
+                        Component.translatable("error.sswaystones.no_safe_spot").withStyle(ChatFormatting.RED));
+                return;
             }
-
-            // Make sure there is a platform beneath the waystone
-            for (int x = -1; x <= 1; x++) {
-                for (int z = -1; z <= 1; z++) {
-                    BlockPos ground = this.pos.offset(x, -1, z);
-                    if (targetWorld.getBlockState(ground).isAir()) {
-                        targetWorld.setBlockAndUpdate(ground, Blocks.COBBLESTONE.defaultBlockState());
-                    }
-                }
-            }
+            target = waystonePos; // Paranoid teleport off: land on the waystone, as before
         }
 
-        // Search for a suitable teleport location
-        List<Vec3i> positionChecks = List.of(new Vec3i(-1, -1, 0), new Vec3i(1, -1, 0), new Vec3i(0, -1, -1),
-                new Vec3i(0, -1, 1), new Vec3i(-1, -1, -1), new Vec3i(1, -1, 1), new Vec3i(1, -1, -1),
-                new Vec3i(-1, -1, 1));
-
-        for (Vec3i checkPos : positionChecks) {
-            BlockPos ground = target.offset(checkPos);
-            BlockPos feet = ground.offset(0, 1, 0);
-            BlockPos head = feet.offset(0, 1, 0);
-
-            if (!targetWorld.getBlockState(ground).getCollisionShape(targetWorld, ground).isEmpty()
-                    && targetWorld.getBlockState(feet).getCollisionShape(targetWorld, feet).isEmpty()
-                    && targetWorld.getBlockState(head).getCollisionShape(targetWorld, head).isEmpty()) {
-                target = feet;
-                break;
+        // Experience cost, charged last so a refused teleport costs nothing
+        int requiredXp = getXpCost(player);
+        if (requiredXp > 0) {
+            if (player.experienceLevel < requiredXp) {
+                player.sendOverlayMessage(
+                        Component.translatable("error.sswaystones.not_enough_xp", requiredXp - player.experienceLevel)
+                                .withStyle(ChatFormatting.RED));
+                return;
+            } else {
+                player.giveExperienceLevels(Math.min(-requiredXp, 0)); // Stop negative values from adding xp
             }
         }
 
@@ -194,6 +182,27 @@ public final class WaystoneRecord {
         targetWorld.playSound(null, target, SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 1f, 1f);
         targetWorld.sendParticles(PowerParticleOption.create(ParticleTypes.DRAGON_BREATH, 1f), center.x(),
                 center.y() + 1f, center.z(), 16, 0.5d, 0.5d, 0.5d, 0.1d);
+    }
+
+    // First spot beside the waystone with solid ground and two clear blocks above it, or null if there is none
+    @Nullable
+    private static BlockPos findLanding(ServerLevel level, BlockPos waystonePos) {
+        for (Vec3i check : LANDING_CHECKS) {
+            BlockPos ground = waystonePos.offset(check);
+            BlockPos feet = ground.above();
+            BlockPos head = feet.above();
+            if (!level.getBlockState(ground).getCollisionShape(level, ground).isEmpty() && isClear(level, feet)
+                    && isClear(level, head))
+                return feet;
+        }
+        return null;
+    }
+
+    // Nothing to collide with, and not lava or fire
+    private static boolean isClear(ServerLevel level, BlockPos pos) {
+        BlockState state = level.getBlockState(pos);
+        return state.getCollisionShape(level, pos).isEmpty() && !state.getFluidState().is(FluidTags.LAVA)
+                && !state.is(BlockTags.FIRE);
     }
 
     public boolean canPlayerEdit(ServerPlayer player) {
@@ -224,16 +233,10 @@ public final class WaystoneRecord {
         if (icon != null && icon != Items.PLAYER_HEAD)
             return icon.getDefaultInstance();
 
-        // The server has to fetch the player's skin
-        GameProfile profile = new GameProfile(this.getOwnerUUID(), this.getOwnerName());
-        if (server != null) {
-            SessionService service = server.services().sessionService();
-            if (service.getTextures(profile) == MinecraftProfileTextures.EMPTY) {
-                ProfileResult fetched = service.fetchProfile(profile.id(), false);
-                if (fetched != null)
-                    profile = fetched.profile();
-            }
-        }
+        // The owner's skin comes from Mojang. SkinCache looks it up off the server thread, so this never blocks
+        GameProfile profile = server != null
+                ? SkinCache.profileFor(server, this.getOwnerUUID(), this.getOwnerName())
+                : new GameProfile(this.getOwnerUUID(), this.getOwnerName());
 
         ItemStack head = Items.PLAYER_HEAD.getDefaultInstance();
         head.set(DataComponents.PROFILE, ResolvableProfile.createResolved(profile));
@@ -258,9 +261,9 @@ public final class WaystoneRecord {
         return waystoneName;
     }
 
+    // Every name passes through here, from the anvil, dialog, Bedrock form, command and old saves alike
     public void setWaystoneName(String waystoneName) {
-        waystoneName = waystoneName.substring(0, Math.min(waystoneName.length(), 32));
-        this.waystoneName = waystoneName;
+        this.waystoneName = WaystoneNames.sanitize(waystoneName);
     }
 
     public BlockPos getPos() {

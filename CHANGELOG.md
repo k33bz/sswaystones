@@ -1,6 +1,24 @@
 # Changelog
 
-## Unreleased (CI only, no mod change)
+## 1.3.2+k33bz.10
+
+Security fixes from a review of the fork. Same fixes on `main` (26.3), `26.2` and `26.1`.
+
+- **Waystone head icons no longer stall the server.** Building an owner's head icon called Mojang's profile service (`SessionService.fetchProfile`) on the server thread: a blocking HTTP request per icon. Paging the viewer, or every tick with `physical_icon_display` on, could freeze the server for as long as Mojang took to answer, or longer when it was down. Skins are now fetched on a background thread and cached (refreshed hourly; a failed lookup is retried after five minutes). The first view shows a plain head and the skin appears the next time the icon is drawn.
+- **`/waystonesettings apply` is no longer a free portable waystone.** It checked edit rights but then reopened the waystone viewer wherever the player stood, so anyone who knew one of their own waystone hashes could teleport from anywhere. It now only works within reach of the waystone (managers may still apply from afar), and it never opens the viewer remotely.
+- **Teleports are re-checked when you click.** The viewer only checked combat and access when it opened. Now, at click time, a teleport is refused if you are in combat, if the waystone was removed, or if you lost access to it while the menu was open. Experience is charged last, so a refused teleport costs nothing.
+- **Paranoid teleport never breaks or places blocks.** It used to break the block above the destination waystone *with drops* and fill air under it with cobblestone, ignoring claims, so anyone allowed to teleport could empty a chest stacked on someone else's waystone. Now a waystone with no safe spot beside it (solid ground, two clear blocks, no lava or fire) refuses the teleport when `paranoid_teleport` is on. With it off, you land on the waystone as before. `paranoid_teleport_unremovable_blocks` is no longer used.
+- **Bedrock forms run on the server thread.** Floodgate delivers form responses off the server thread, and the forget and settings handlers changed player and waystone data there. All form handlers now hop to the server thread first, and the settings form re-checks edit rights when it is submitted.
+- New messages: `error.sswaystones.no_access`, `no_safe_spot` and `too_far`, in all 13 languages.
+- **Each line only loads on its own Minecraft version.** `fabric.mod.json` declared `"minecraft": ">=<version>"`, so the 26.1 jar claimed to run on 26.2 and 26.3 and would load there and crash. It now declares `~<version>` (26.1 jar: 26.1.x only, and so on).
+- **Edit menus re-check rights on every click.** The Java name, icon and access-settings menus, and the admin "steal" button, checked permissions only when they opened. If an admin took the waystone over, or a permission was revoked, while the menu was open, the player could still change it.
+- **Formatting codes are stripped from waystone names.** Bedrock forms and `/waystonesettings apply` let `§` codes and control characters through, so a name could fake colours, obfuscate itself or break across lines in everyone's viewer and on the hologram. Every name, including ones already saved, is now cleaned (`WaystoneNames`, unit tested).
+- **Forgetting a waystone really forgets it.** Placing a waystone added it to the creator's discovered list twice (on creation and on the first right-click), and forgetting removed only one copy, so the waystone stayed usable. Duplicates are no longer added, every copy is removed, and saves with duplicates are cleaned when loaded.
+- **Withers and the Ender Dragon can't break waystones.** All waystone blocks are in the vanilla `wither_immune` and `dragon_immune` block tags, through a new `sswaystones:waystones` tag. TNT already couldn't break them.
+- **`/waystonesettings apply` no longer reveals where waystones are.** A waystone hash is the SHA-256 of its position, so anyone can compute one, and "not found" versus "no permission" told players whether a waystone stood at any coordinates they tried. Both now get the same answer.
+- README: recommends setting `waystone_limit` on public servers (default stays `0`, unlimited) and describes the new paranoid teleport behaviour.
+
+CI (no mod change):
 
 - **Real-server CI test** (`scripts/server_test.py`, adapted from Sanctuary's): every push and PR boots a real
   Fabric server on the newest release of the branch's Minecraft line (the 26.1 line tests 26.1.2, what servers

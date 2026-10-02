@@ -109,7 +109,7 @@ public class WaystoneStorage extends SavedData {
         String hash = record.getHash();
         this.waystones.put(hash, record);
 
-        getPlayerState(player).discoveredWaystones.add(hash);
+        getPlayerState(player).discover(hash);
 
         return record;
     }
@@ -119,7 +119,7 @@ public class WaystoneStorage extends SavedData {
         String hash = record.getHash();
 
         for (PlayerData playerData : this.players.values()) {
-            playerData.discoveredWaystones.remove(hash);
+            playerData.forget(hash);
         }
     }
 

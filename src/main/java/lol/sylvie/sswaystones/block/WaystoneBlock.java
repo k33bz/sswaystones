@@ -143,7 +143,7 @@ public class WaystoneBlock extends BaseEntityBlock implements PolymerBlock {
             }
 
             if (!playerData.discoveredWaystones.contains(waystoneHash) || newlyCreated) {
-                playerData.discoveredWaystones.add(waystoneHash);
+                playerData.discover(waystoneHash);
                 player.sendSystemMessage(Component
                         .translatable("message.sswaystones.discovered",
                                 record.getWaystoneText().copy().withStyle(ChatFormatting.BOLD, ChatFormatting.GOLD))
