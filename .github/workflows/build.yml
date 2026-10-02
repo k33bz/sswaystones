@@ -10,6 +10,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # only used to push README badge data to the `badges` branch (release lines)
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
@@ -41,6 +43,28 @@ jobs:
               print("::error::no unit tests ran", file=sys.stderr)
               sys.exit(1)
           EOF
+      # Boot a real Fabric server (newest release of this line, newest fabric-api) with the jar
+      # and drive it through the console: commands, every village template, a placed waystone,
+      # a generated village. Writes build/server-test/versions.json for the badges below.
+      - name: Server test (real Fabric server)
+        run: python3 scripts/server_test.py
+      - name: Upload server-test log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: server-test-log-${{ env.MC_VERSION }}
+          path: build/server-test/console.log
+          if-no-files-found: ignore
+      # README badges per release line (scripts/publish_badges.py -> orphan `badges` branch).
+      # Pushes to a release line only: a PR or feature branch must never overwrite what they report.
+      - name: Publish version badges
+        if: always() && github.event_name == 'push' && (github.ref_name == 'main' || startsWith(github.ref_name, '26.')) && hashFiles('build/server-test/versions.json') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 scripts/publish_badges.py --branch "$GITHUB_REF_NAME" --out /tmp/badges
+          bash scripts/commit_badges.sh /tmp/badges "$GITHUB_REF_NAME @ ${GITHUB_SHA::7}" || true
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v7
